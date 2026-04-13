@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from '../context/AuthContext';
 
 const navLinks = [
-  { name: "Home", path: "/dashboard" },
+  { name: "Home", path: "/home" },
   { name: "About", path: "/about" },
   { name: "Services", path: "/services" },
   { name: "Plant Diseases", path: "/plant-diseases" },
@@ -11,11 +10,130 @@ const navLinks = [
   { name: "Contact", path: "/contact" },
 ];
 
+const INDIAN_LANGUAGES = [
+  { code: "en",  name: "English",   native: "English"     },
+  { code: "hi",  name: "Hindi",     native: "हिन्दी"      },
+  { code: "bn",  name: "Bengali",   native: "বাংলা"       },
+  { code: "te",  name: "Telugu",    native: "తెలుగు"      },
+  { code: "mr",  name: "Marathi",   native: "मराठी"       },
+  { code: "ta",  name: "Tamil",     native: "தமிழ்"       },
+  { code: "gu",  name: "Gujarati",  native: "ગુજરાતી"     },
+  { code: "kn",  name: "Kannada",   native: "ಕನ್ನಡ"       },
+  { code: "ml",  name: "Malayalam", native: "മലയാളം"      },
+  { code: "pa",  name: "Punjabi",   native: "ਪੰਜਾਬੀ"      },
+  { code: "or",  name: "Odia",      native: "ଓଡ଼ିଆ"       },
+  { code: "as",  name: "Assamese",  native: "অসমীয়া"     },
+  { code: "ur",  name: "Urdu",      native: "اردو"        },
+  { code: "sa",  name: "Sanskrit",  native: "संस्कृतम्"   },
+];
+function changeLanguage(langCode) {
+  if (langCode === "en") {
+    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + window.location.hostname;
+    window.location.reload();
+    return;
+  }
+  document.cookie = `googtrans=/en/${langCode}; path=/`;
+  document.cookie = `googtrans=/en/${langCode}; path=/; domain=${window.location.hostname}`;
+  window.location.reload();
+}
+
+function LanguageSwitcher() {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(() => {
+    const cookie = document.cookie.split("; ").find(c => c.startsWith("googtrans="));
+    if (cookie) {
+      const code = cookie.split("/").pop();
+      return INDIAN_LANGUAGES.find(l => l.code === code) || INDIAN_LANGUAGES[0];
+    }
+    return INDIAN_LANGUAGES[0];
+  });
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleSelect = (lang) => {
+    setActive(lang);
+    setOpen(false);
+    changeLanguage(lang.code);
+  };
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          background: "transparent",
+          border: "1.5px solid #a8d5a0",
+          borderRadius: 8, padding: "7px 12px",
+          cursor: "pointer", fontSize: 13, fontWeight: 500,
+          color: "#2d5a27", fontFamily: "'DM Sans', sans-serif",
+          transition: "all 0.2s",
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = "#e8f5e3"}
+        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+      >
+        🌐 {active.native !== "English" ? active.native : active.name}
+        <span style={{ fontSize: 10, marginLeft: 2 }}>▾</span>
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 8px)", right: 0,
+          background: "rgba(240,247,240,0.98)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid #d4ead0",
+          borderRadius: 12, padding: 8, zIndex: 200,
+          width: 270,
+          boxShadow: "0 8px 32px rgba(27,74,23,0.12)",
+          display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2,
+        }}>
+          <div style={{
+            gridColumn: "1 / -1", fontSize: 10, color: "#5a9e4f",
+            padding: "2px 8px 6px", letterSpacing: "0.08em",
+            fontFamily: "'DM Sans', sans-serif", textTransform: "uppercase",
+          }}>
+            Select Language
+          </div>
+          {INDIAN_LANGUAGES.map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => handleSelect(lang)}
+              style={{
+                textAlign: "left",
+                background: active.code === lang.code ? "#d4ead0" : "transparent",
+                border: "none", borderRadius: 8,
+                padding: "8px 10px", cursor: "pointer",
+                display: "flex", flexDirection: "column", gap: 1,
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={e => { if (active.code !== lang.code) e.currentTarget.style.background = "#e8f5e3"; }}
+              onMouseLeave={e => { if (active.code !== lang.code) e.currentTarget.style.background = "transparent"; }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 500, color: active.code === lang.code ? "#1b4a17" : "#2d5a27", fontFamily: "'DM Sans', sans-serif" }}>
+                {lang.name}
+              </span>
+              <span style={{ fontSize: 12, color: "#5a9e4f" }}>{lang.native}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Navbar() {
-  const { isAuthenticated, logout } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState("Home");
   const navigate = useNavigate();
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
@@ -66,7 +184,13 @@ export default function Navbar() {
           background: #2d6128;
           transform: translateY(-1px);
         }
+
+        /* Google Translate ki default toolbar hide karo */
+        .goog-te-banner-frame,
+        .skiptranslate { display: none !important; }
+        body { top: 0 !important; }
       `}</style>
+      <div id="google_translate_element" style={{ display: "none" }} />
 
       <nav style={{
         position: "sticky", top: 0, zIndex: 100,
@@ -92,42 +216,25 @@ export default function Navbar() {
 
           {/* Nav Links */}
           <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-          {navLinks.map(link => (
-  <span
-    key={link.name}
-    className={`nav-link ${activeNav === link.name ? "active" : ""}`}
-    onClick={() => {
-      setActiveNav(link.name);
-      navigate(link.path);
-    }}
-  >
-    {link.name}
-  </span>
-))}
+            {navLinks.map(link => (
+              <span
+                key={link.name}
+                className={`nav-link ${activeNav === link.name ? "active" : ""}`}
+                onClick={() => { setActiveNav(link.name); navigate(link.path); }}
+              >
+                {link.name}
+              </span>
+            ))}
           </div>
 
           {/* Right Actions */}
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <LanguageSwitcher />
             <span style={{ fontSize: 20, cursor: "pointer", color: "#3a7d32" }}>🔍</span>
             <span style={{ fontSize: 20, cursor: "pointer", color: "#3a7d32" }}>👤</span>
-            <button 
-              className="nav-demo-btn" 
-              onClick={() => navigate("/analysis")}
-            >
+            <button className="nav-demo-btn" onClick={() => navigate("/analysis")}>
               Get A Demo
             </button>
-            {isAuthenticated && (
-              <button
-                className="nav-demo-btn"
-                style={{ background: '#e53e3e' }}
-                onClick={() => {
-                  logout();
-                  navigate('/');
-                }}
-              >
-                Logout
-              </button>
-            )}
           </div>
 
         </div>
