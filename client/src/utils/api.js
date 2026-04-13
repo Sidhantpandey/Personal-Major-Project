@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:4000/api/auth';
+const API_BASE_URL = ' https://personal-major-project.onrender.com/api/auth';
 
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
