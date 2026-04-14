@@ -28,3 +28,7 @@ htmlcov/
 
 # Alembic generated assets (versions are committed; compiled are not)
 alembic/__pycache__/
+
+# ML model weights (too large for git — download separately)
+ml-weights/
+*.pth

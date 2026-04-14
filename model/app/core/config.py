@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # ── ML Model ──────────────────────────────────────────────────────────────
+    ML_WEIGHTS_DIR: str = "ml-weights/OmniCrops"  # dir with .pth + metadata.json
+
     # ── CORS (optional) ──────────────────────────────────────────────────────
     ALLOWED_ORIGINS: list[str] = ["*"]
 

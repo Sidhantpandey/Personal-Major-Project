@@ -27,6 +27,12 @@ python-dotenv==1.0.1
 python-multipart==0.0.19   # form data / file uploads
 email-validator==2.2.0     # Pydantic EmailStr validation
 
+# ML inference (OmniCrops SwinV2-B+FPN)
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+Pillow>=10.0.0
+
 # Development / testing (optional – pin versions for reproducibility)
 pytest==8.3.4
 pytest-asyncio==0.24.0

@@ -3,11 +3,13 @@ FastAPI application entry point.
 
 Registers:
   - All API routers under /api/v1
+  - ML model loaded at startup for /predict
   - A /health liveness probe
   - CORS middleware (configurable via settings.ALLOWED_ORIGINS)
   - Global exception handlers for cleaner error envelopes
 """
 
+import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -15,8 +17,10 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.v1 import auth, users
+from app.api.v1 import auth, predict, users
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 # ─── Lifespan (startup / shutdown hooks) ──────────────────────────────────────
@@ -32,9 +36,21 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     # from app.db.base import Base
     # async with async_engine.begin() as conn:
     #     await conn.run_sync(Base.metadata.create_all)
+
+    # ── Load ML model ────────────────────────────────────────────────────────
+    from app.services.ml_service import MLService
+
+    try:
+        app.state.ml_service = MLService(weights_dir=settings.ML_WEIGHTS_DIR)
+        logger.info("✅ ML model loaded successfully.")
+    except Exception as exc:
+        logger.error("❌ Failed to load ML model: %s", exc)
+        app.state.ml_service = None
+
     yield
     # Shutdown ─────────────────────────────────────────────────────────────────
-    # Add any cleanup here (close Redis connections, etc.)
+    app.state.ml_service = None
+    logger.info("ML model unloaded.")
 
 
 # ─── App instance ─────────────────────────────────────────────────────────────
@@ -93,14 +109,20 @@ async def server_error_handler(request: Request, exc: Exception) -> JSONResponse
     summary="Liveness probe",
     response_description="Service status",
 )
-async def health_check() -> dict[str, str]:
+async def health_check(request: Request) -> dict[str, str]:
     """
     Lightweight health check endpoint used by load balancers / orchestrators.
 
     Returns:
         JSON with *status* == "ok" when the service is reachable.
     """
-    return {"status": "ok", "service": settings.APP_NAME, "version": settings.APP_VERSION}
+    ml_ready = getattr(request.app.state, "ml_service", None) is not None
+    return {
+        "status": "ok",
+        "service": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "ml_model_loaded": str(ml_ready),
+    }
 
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
@@ -109,3 +131,4 @@ API_PREFIX = "/api/v1"
 
 app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(users.router, prefix=API_PREFIX)
+app.include_router(predict.router, prefix=API_PREFIX)
