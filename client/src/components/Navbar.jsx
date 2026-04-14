@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const navLinks = [
-  { name: "Home", path: "/dashboard" },
+  { name: "Home", path: "/dashboard#top" },
   { name: "About", path: "#about" },
   { name: "Services", path: "#features" },
   { name: "Plant Diseases", path: "#crops" },
@@ -312,8 +312,12 @@ export default function Navbar() {
       }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 
-          {/* Logo */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* Logo (Clickable to Home) */}
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+            onClick={() => navigate("/dashboard")}
+            title="Go to Home"
+          >
             <div style={{ width: 38, height: 38, background: "linear-gradient(135deg, #3a7d32, #6acd5a)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <span style={{ fontSize: 20 }}>🌿</span>
             </div>
@@ -322,6 +326,7 @@ export default function Navbar() {
               <div style={{ fontSize: 10, color: "#5a9e4f", letterSpacing: 1 }}>AI PLANT HEALTH</div>
             </div>
           </div>
+     
 
           {/* Nav Links */}
           <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
@@ -339,8 +344,6 @@ export default function Navbar() {
           {/* Right Actions */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <LanguageSwitcher />
-            <span style={{ fontSize: 20, cursor: "pointer", color: "#3a7d32" }}>🔍</span>
-            <span style={{ fontSize: 20, cursor: "pointer", color: "#3a7d32" }}>👤</span>
             <button className="nav-demo-btn" onClick={() => navigate("/analysis")}>
               Get A Demo
             </button>

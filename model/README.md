@@ -27,7 +27,7 @@ source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
-
+Hey 
 # Copy and edit env file
 cp .env.example .env
 # Edit .env with your database credentials, JWT secret, etc.

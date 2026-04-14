@@ -1,8 +1,5 @@
 import { useState, useRef } from "react";
-
-const cropOptions = ["Potato", "Tomato", "Cotton", "Grapes"];
-const symptoms    = ["Yellow Leaves", "Brown Spots", "Wilting", "White Powder", "Black Spots", "Curling Leaves", "Holes in Leaves", "Rotting Stem"];
-const severities  = ["Mild — few leaves", "Moderate — some plants", "Severe — whole field"];
+import { predictDisease } from "../utils/api";
 
 const RESULTS = [
   {
@@ -27,42 +24,69 @@ const RESULTS = [
 
 export default function DiagnoseSection() {
   const [step, setStep]       = useState(1);
-  const [crop, setCrop]       = useState("");
-  const [selS, setSelS]       = useState([]);
-  const [sev, setSev]         = useState("");
-  const [notes, setNotes]     = useState("");
+  const crop = "Unknown Crop";
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult]   = useState(null);
   const [barW, setBarW]       = useState(0);
+  const [file, setFile]       = useState(null);
   const fileRef = useRef();
 
-  const toggleS = (s) => setSelS(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s]);
-
-  const handleFile = (file) => {
-    if (!file?.type.startsWith("image/")) return;
+  const handleFile = (f) => {
+    if (!f?.type.startsWith("image/")) return;
+    setFile(f);
     const r = new FileReader();
     r.onload = e => setPreview(e.target.result);
-    r.readAsDataURL(file);
+    r.readAsDataURL(f);
   };
 
-  const submit = () => {
+  const submit = async () => {
+    if (!file) return;
     setLoading(true);
-    setStep(3);
-    setTimeout(() => {
-      const r = RESULTS[Math.floor(Math.random() * RESULTS.length)];
-      setResult(r);
+    setStep(2);
+    try {
+      const prediction = await predictDisease(file, true); // use TTA for better accuracy
+      const [, diseaseName] = prediction.predicted_class.split('___');
+      const isHealthy = diseaseName.toLowerCase() === 'healthy';
+      
+      const resultData = {
+        statusLabel: isHealthy ? "Healthy Crop" : "Disease Detected",
+        statusColor: isHealthy ? "#3a7d32" : "#c0392b",
+        statusBg: isHealthy ? "#e8f5e3" : "#fdecea",
+        icon: isHealthy ? "✅" : "⚠️",
+        disease: isHealthy ? "No Disease Detected" : diseaseName.replace(/_/g, ' '),
+        confidence: prediction.confidence,
+        severity: prediction.confidence > 90 ? "Severe" : prediction.confidence > 70 ? "Moderate" : "Mild",
+        severityColor: prediction.confidence > 90 ? "#c0392b" : prediction.confidence > 70 ? "#e67e22" : "#f39c12",
+        desc: isHealthy 
+          ? "Your crop leaf appears completely healthy. No signs of disease detected."
+          : `${diseaseName.replace(/_/g, ' ')} detected with ${prediction.confidence}% confidence.`,
+        tips: isHealthy 
+          ? ["Maintain regular watering schedule", "Ensure proper sunlight exposure", "Continue current fertilization plan", "Monitor weekly for early signs"]
+          : ["Consult local agricultural extension service", "Apply appropriate treatment based on disease", "Isolate affected plants if necessary", "Monitor surrounding plants for spread"],
+      };
+      
+      setResult(resultData);
+      setTimeout(() => setBarW(prediction.confidence), 150);
+    } catch (error) {
+      console.error('Prediction failed:', error);
+      // Fallback to mock result or show error
+      const fallback = RESULTS[0]; // Healthy
+      setResult(fallback);
+      setTimeout(() => setBarW(fallback.confidence), 150);
+    } finally {
       setLoading(false);
-      setTimeout(() => setBarW(r.confidence), 150);
-    }, 2400);
+    }
   };
 
   const restart = () => {
-    setStep(1); setCrop(""); setSelS([]); setSev(""); setNotes("");
-    setPreview(null); setResult(null); setLoading(false); setBarW(0);
+    setStep(1);
+    setPreview(null);
+    setResult(null);
+    setLoading(false);
+    setBarW(0);
+    setFile(null);
   };
-
-  const step1OK = crop && selS.length > 0 && sev;
 
   return (
     <>
@@ -186,7 +210,7 @@ export default function DiagnoseSection() {
 
         {/* Stepper */}
         <div className="stepper">
-          {[{n:1,l:"Crop Info"},{n:2,l:"Upload Photo"},{n:3,l:"View Result"}].map(({n,l},i,a) => (
+          {[{n:1,l:"Upload Photo"},{n:2,l:"View Result"}].map(({n,l},i,a) => (
             <div key={n} style={{display:"flex",alignItems:"center"}}>
               <div className={`s-num ${step>n?"done":step===n?"on":"off"}`}>{step>n?"✓":n}</div>
               <span className={`s-lbl ${step<n?"off":""}`}>{l}</span>
@@ -195,70 +219,14 @@ export default function DiagnoseSection() {
           ))}
         </div>
 
-        {/* ── STEP 1: FORM ── */}
+        {/* ── STEP 1: UPLOAD ── */}
         {step === 1 && (
           <div className="card" key="s1">
-            <div className="card-head">
-              <div><div className="ch-title">Tell Us About Your Crop</div><div className="ch-sub">Select type, symptoms & severity level</div></div>
-            </div>
-            <div className="card-body">
-
-              <div className="fg">
-                <span className="lbl">Crop Type</span>
-                <div className="crop-grid">
-                  {cropOptions.map(c=>(
-                    <div key={c} className={`crop-btn ${crop===c?"sel":""}`} onClick={()=>setCrop(c)}>{c}</div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="fg">
-                <span className="lbl">Visible Symptoms <span style={{color:"#9aba94",fontWeight:500,textTransform:"none",letterSpacing:0,fontSize:11}}>select all that apply</span></span>
-                <div className="sym-wrap">
-                  {symptoms.map(s=>(
-                    <div key={s} className={`sym ${selS.includes(s)?"sel":""}`} onClick={()=>toggleS(s)}>
-                      {selS.includes(s)?"✓ ":""}{s}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="fg">
-                <span className="lbl">Spread Severity</span>
-                <div className="sev-grid">
-                  {severities.map(s=>(
-                    <div key={s} className={`sev-btn ${sev===s?"sel":""}`} onClick={()=>setSev(s)}>{s}</div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="fg" style={{marginBottom:32}}>
-                <span className="lbl">Additional Notes <span style={{color:"#9aba94",fontWeight:500,textTransform:"none",letterSpacing:0,fontSize:11}}>optional</span></span>
-                <textarea className="notes-ta" placeholder="e.g. symptoms appeared after heavy rain, 3 days ago..." value={notes} onChange={e=>setNotes(e.target.value)} />
-              </div>
-
-              <button className="btn-main" disabled={!step1OK} onClick={()=>setStep(2)}>
-                Next: Upload Leaf Photo →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 2: UPLOAD ── */}
-        {step === 2 && (
-          <div className="card" key="s2">
             <div className="card-head">
               <span className="ch-icon">📷</span>
               <div><div className="ch-title">Upload Leaf Photo</div><div className="ch-sub">Clear, well-lit photo gives the best results</div></div>
             </div>
             <div className="card-body">
-
-              {/* Summary pills */}
-              <div className="sum-row">
-                <span className="sum-pill">{crop}</span>
-                {selS.map(s=><span key={s} className="sum-pill">{s}</span>)}
-                <span className="sum-pill">{sev.split("—")[0].trim()}</span>
-              </div>
 
               <div
                 className={`upz ${preview?"filled":""}`}
@@ -276,7 +244,6 @@ export default function DiagnoseSection() {
               {preview && <p style={{fontSize:13,color:"#5a9e4f",fontWeight:600,marginBottom:20,textAlign:"center"}}>✓ Image ready — click Submit to analyze</p>}
 
               <div className="btn-row">
-                <button className="btn-back" onClick={()=>setStep(1)}>← Back</button>
                 <button className="btn-main" style={{flex:1}} disabled={!preview} onClick={submit}>
                   Submit & View Result
                 </button>
@@ -285,9 +252,9 @@ export default function DiagnoseSection() {
           </div>
         )}
 
-        {/* ── STEP 3: RESULT ── */}
-        {step === 3 && (
-          <div className="card" key="s3">
+        {/* ── STEP 2: RESULT ── */}
+        {step === 2 && (
+          <div className="card" key="s2">
             {loading ? (
               <div className="ld-box">
                 <div className="spin" />

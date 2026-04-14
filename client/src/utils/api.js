@@ -46,4 +46,27 @@ export const authAPI = {
   }),
 };
 
+// ML Prediction API
+const ML_API_URL = 'http://127.0.0.1:8000/api/v1/predict';
+
+export const predictDisease = async (file, useTTA = false) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const url = `${ML_API_URL}${useTTA ? '?tta=true' : ''}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `ML API error: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result.data;
+};
+
 export default authAPI;
