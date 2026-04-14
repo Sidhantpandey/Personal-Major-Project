@@ -186,6 +186,7 @@ function LanguageSwitcher() {
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState("Home");
+  const [logoutLoading, setLogoutLoading] = useState(false);
   const navigate = useNavigate();
   const { logout } = useAuth();
 
@@ -210,8 +211,13 @@ export default function Navbar() {
   };
 
   const handleLogout = async () => {
-    await logout();
-    navigate("/");
+    setLogoutLoading(true);
+    try {
+      await logout();
+      navigate("/");
+    } finally {
+      setLogoutLoading(false);
+    }
   };
 
   return (
@@ -275,11 +281,23 @@ export default function Navbar() {
           background: #b91c1c;
           transform: translateY(-1px);
         }
+        .logout-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none;
+        }
+        .logout-btn:disabled:hover {
+          background: #dc2626;
+          transform: none;
+        }
 
         /* Google Translate ki default toolbar hide karo */
         .goog-te-banner-frame,
         .skiptranslate { display: none !important; }
         body { top: 0 !important; }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
       `}</style>
       <div id="google_translate_element" style={{ display: "none" }} />
 
@@ -326,8 +344,22 @@ export default function Navbar() {
             <button className="nav-demo-btn" onClick={() => navigate("/analysis")}>
               Get A Demo
             </button>
-            <button className="logout-btn" onClick={handleLogout}>
-              Logout
+            <button className="logout-btn" onClick={handleLogout} disabled={logoutLoading}>
+              {logoutLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 16,
+                    height: 16,
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTop: '2px solid white',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                  }} />
+                  Logging out...
+                </div>
+              ) : (
+                'Logout'
+              )}
             </button>
           </div>
 
