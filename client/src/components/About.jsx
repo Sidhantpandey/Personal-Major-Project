@@ -1,6 +1,6 @@
 export default function AboutSection() {
   return (
-    <>
+    <div id="about">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap');
 
@@ -333,6 +333,6 @@ export default function AboutSection() {
         </div>
 
       </section>
-    </>
+    </div>
   );
 }

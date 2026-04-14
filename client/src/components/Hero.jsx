@@ -6,7 +6,7 @@ const LeafIcon = ({ style, className }) => (
 
 export default function HeroSection() {
   return (
-    <>
+    <div id="hero">
       <style>{`        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
 
         .hero-title {
@@ -191,6 +191,6 @@ export default function HeroSection() {
         </div>
       </section>
       </div>
-    </>
+    </div>
   );
 }

@@ -199,7 +199,6 @@ export default function DiagnoseSection() {
         {step === 1 && (
           <div className="card" key="s1">
             <div className="card-head">
-              <span className="ch-icon">Report</span>
               <div><div className="ch-title">Tell Us About Your Crop</div><div className="ch-sub">Select type, symptoms & severity level</div></div>
             </div>
             <div className="card-body">

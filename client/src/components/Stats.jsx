@@ -7,7 +7,7 @@ const stats = [
 
 export default function StatsBanner() {
   return (
-    <>
+    <div id="stats">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
         .stat-item { text-align: center; color: white; }
@@ -43,6 +43,6 @@ export default function StatsBanner() {
           ))}
         </div>
       </section>
-    </>
+    </div>
   );
 }

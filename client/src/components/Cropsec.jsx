@@ -14,7 +14,7 @@ const steps = [
 
 export default function CropsSection() {
   return (
-    <>
+    <div id="crops">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
         .crop-card {
@@ -92,9 +92,8 @@ export default function CropsSection() {
 
             <button className="try-free-btn">Try For Free →</button>
           </div>
-
         </div>
       </section>
-    </>
+    </div>
   );
 }

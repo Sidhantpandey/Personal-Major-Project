@@ -58,7 +58,7 @@ export default function TestimonialsSection() {
   const [paused, setPaused] = useState(false);
 
   return (
-    <>
+    <div id="testimonials">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
 
@@ -276,6 +276,6 @@ export default function TestimonialsSection() {
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }

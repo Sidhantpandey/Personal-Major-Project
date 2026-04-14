@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom/client";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const navLinks = [
-  { name: "Home", path: "/home" },
-  { name: "About", path: "/about" },
-  { name: "Services", path: "/services" },
-  { name: "Plant Diseases", path: "/plant-diseases" },
-  { name: "Blog", path: "/blog" },
-  { name: "Contact", path: "/contact" },
+  { name: "Home", path: "/dashboard" },
+  { name: "About", path: "#about" },
+  { name: "Services", path: "#features" },
+  { name: "Plant Diseases", path: "#crops" },
+  { name: "Blog", path: "#testimonials" },
+  { name: "Contact", path: "#footer" },
 ];
 
 const INDIAN_LANGUAGES = [
@@ -26,16 +28,68 @@ const INDIAN_LANGUAGES = [
   { code: "ur",  name: "Urdu",      native: "اردو"        },
   { code: "sa",  name: "Sanskrit",  native: "संस्कृतम्"   },
 ];
+
+function LoaderOverlay() {
+  return (
+    <div style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      background: "rgba(240, 247, 240, 0.95)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 9999,
+    }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{
+          width: 60,
+          height: 60,
+          margin: "0 auto 20px",
+          border: "4px solid #d4ead0",
+          borderTop: "4px solid #3a7d32",
+          borderRadius: "50%",
+          animation: "spin 1s linear infinite",
+        }} />
+        <p style={{
+          color: "#2d5a27",
+          fontSize: 16,
+          fontWeight: 500,
+          fontFamily: "'DM Sans', sans-serif",
+        }}>
+          Loading ...
+        </p>
+      </div>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 function changeLanguage(langCode) {
-  if (langCode === "en") {
-    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
-    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + window.location.hostname;
+  // Show loader
+  const loaderDiv = document.createElement('div');
+  loaderDiv.id = 'language-loader';
+  const root = ReactDOM.createRoot(loaderDiv);
+  root.render(<LoaderOverlay />);
+  document.body.appendChild(loaderDiv);
+
+  setTimeout(() => {
+    if (langCode === "en") {
+      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + window.location.hostname;
+      window.location.reload();
+      return;
+    }
+    document.cookie = `googtrans=/en/${langCode}; path=/`;
+    document.cookie = `googtrans=/en/${langCode}; path=/; domain=${window.location.hostname}`;
     window.location.reload();
-    return;
-  }
-  document.cookie = `googtrans=/en/${langCode}; path=/`;
-  document.cookie = `googtrans=/en/${langCode}; path=/; domain=${window.location.hostname}`;
-  window.location.reload();
+  }, 300);
 }
 
 function LanguageSwitcher() {
@@ -133,12 +187,32 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState("Home");
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleLinkClick = (link) => {
+    setActiveNav(link.name);
+    if (link.path.startsWith("#")) {
+      // Scroll to section
+      const sectionId = link.path.substring(1);
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    } else {
+      navigate(link.path);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   return (
     <>
@@ -185,6 +259,23 @@ export default function Navbar() {
           transform: translateY(-1px);
         }
 
+        .logout-btn {
+          background: #dc2626;
+          color: white;
+          border: none;
+          padding: 11px 24px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: 'DM Sans', sans-serif;
+        }
+        .logout-btn:hover {
+          background: #b91c1c;
+          transform: translateY(-1px);
+        }
+
         /* Google Translate ki default toolbar hide karo */
         .goog-te-banner-frame,
         .skiptranslate { display: none !important; }
@@ -220,7 +311,7 @@ export default function Navbar() {
               <span
                 key={link.name}
                 className={`nav-link ${activeNav === link.name ? "active" : ""}`}
-                onClick={() => { setActiveNav(link.name); navigate(link.path); }}
+                onClick={() => handleLinkClick(link)}
               >
                 {link.name}
               </span>
@@ -234,6 +325,9 @@ export default function Navbar() {
             <span style={{ fontSize: 20, cursor: "pointer", color: "#3a7d32" }}>👤</span>
             <button className="nav-demo-btn" onClick={() => navigate("/analysis")}>
               Get A Demo
+            </button>
+            <button className="logout-btn" onClick={handleLogout}>
+              Logout
             </button>
           </div>
 

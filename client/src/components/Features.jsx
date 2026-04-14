@@ -30,7 +30,7 @@ const features = [
 
 export default function FeaturesSection() {
   return (
-    <>
+    <div id="features">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
 
@@ -206,6 +206,6 @@ export default function FeaturesSection() {
         </div>
 
       </section>
-    </>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 export default function CTAAndFooter() {
   return (
-    <>
+    <div id="footer">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
 
@@ -88,6 +88,6 @@ export default function CTAAndFooter() {
           </div>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
