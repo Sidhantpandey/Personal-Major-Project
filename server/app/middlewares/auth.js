@@ -11,7 +11,7 @@ export const authenticate = async (req, res, next) => {
     }
 
     const decoded = verifyToken(token);
-    const user = await User.findByPk(decoded.id);
+    const user = await User.findById(decoded.id);
 
     if (!user) {
       return sendError(res, 'Invalid token.', 401);

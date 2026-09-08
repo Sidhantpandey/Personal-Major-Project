@@ -1,14 +1,33 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
 
 type ResultScreenProps = {
   disease: string;
   confidence: number;
+  recommendations?: string[];
   onBack: () => void;
 };
 
-export const ResultScreen: React.FC<ResultScreenProps> = ({ disease, confidence, onBack }) => {
+export const ResultScreen: React.FC<ResultScreenProps> = ({
+  disease,
+  confidence,
+  recommendations = [
+    'Remove infected leaves and isolate affected plants',
+    'Apply a suitable fungicide as per crop stage',
+    'Maintain proper ventilation and avoid overwatering',
+  ],
+  onBack,
+}) => {
+  const { isAuthenticated, user } = useAuth();
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      onBack();
+    }
+  }, [isAuthenticated, onBack]);
   return (
     <View style={styles.screen}>
       <View style={styles.topBar}>
@@ -17,9 +36,13 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ disease, confidence,
           <Text style={styles.navItem}>Home</Text>
           <Text style={styles.navItem}>Scan</Text>
           <Text style={styles.navItem}>Pricing</Text>
-          <Pressable style={styles.loginButton} onPress={onBack}>
-            <Text style={styles.loginText}>Login</Text>
-          </Pressable>
+          {isAuthenticated && user ? (
+            <Text style={styles.userEmail}>{user.email}</Text>
+          ) : (
+            <Pressable style={styles.loginButton} onPress={onBack}>
+              <Text style={styles.loginText}>Login</Text>
+            </Pressable>
+          )}
         </View>
       </View>
 
@@ -51,9 +74,11 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ disease, confidence,
 
           <View style={styles.tipsBox}>
             <Text style={styles.summaryTitle}>Recommended Actions</Text>
-            <Text style={styles.tipText}>• Remove infected leaves and isolate affected plants</Text>
-            <Text style={styles.tipText}>• Apply a suitable fungicide as per crop stage</Text>
-            <Text style={styles.tipText}>• Maintain proper ventilation and avoid overwatering</Text>
+            {recommendations.map((rec, idx) => (
+              <Text key={idx} style={styles.tipText}>
+                • {rec}
+              </Text>
+            ))}
           </View>
 
           <Pressable style={styles.primaryButton} onPress={onBack}>
@@ -104,6 +129,11 @@ const styles = StyleSheet.create({
   loginText: {
     color: '#fff',
     fontWeight: '700',
+  },
+  userEmail: {
+    fontSize: 13,
+    color: '#334155',
+    fontWeight: '600',
   },
   contentContainer: {
     paddingVertical: 40,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   Pressable,
@@ -6,22 +6,95 @@ import {
   StyleSheet,
   Text,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { useAuth } from '../context/AuthContext';
+import { predictionAPI } from '../utils/api';
 
 type ScanDashboardScreenProps = {
-  onScan: () => void;
+  onScan: (disease: string, confidence: number) => void;
   onBack: () => void;
 };
 
 export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan, onBack }) => {
+  const { user, isAuthenticated, logout } = useAuth();
   const [selectedCrop, setSelectedCrop] = useState<'Sugarcane' | 'Other Crops'>('Sugarcane');
   const [language, setLanguage] = useState<'English' | 'हिन्दी'>('English');
-  const [uploadedFile, setUploadedFile] = useState('No file selected');
+  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSelectFile = () => {
-    setUploadedFile('sugarcane_leaf.jpg');
-    Alert.alert('File selected', 'sugarcane_leaf.jpg');
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      onBack();
+    }
+  }, [isAuthenticated, onBack]);
+
+  const handleSelectFile = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const { uri, filename } = result.assets[0];
+        setImageUri(uri);
+        setUploadedFile(filename || 'photo.jpg');
+        setError('');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to select image';
+      setError(message);
+      Alert.alert('Error', message);
+    }
+  };
+
+  const handleScan = async () => {
+    try {
+      if (!imageUri) {
+        setError('Please select an image first');
+        Alert.alert('Error', 'Please select an image first');
+        return;
+      }
+
+      if (!isAuthenticated) {
+        Alert.alert('Error', 'Please login to scan crops');
+        onBack();
+        return;
+      }
+
+      setIsLoading(true);
+      setError('');
+
+      const response = await predictionAPI.uploadPhoto(imageUri, selectedCrop, language);
+      
+      if (response.data) {
+        const { disease, confidence } = response.data;
+        onScan(disease, confidence);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to process scan';
+      setError(message);
+      Alert.alert('Error', message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      onBack();
+    } catch (err) {
+      Alert.alert('Logout Error', 'Failed to logout');
+    }
   };
 
   return (
@@ -32,9 +105,18 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
           <Text style={styles.navItem}>Home</Text>
           <Text style={styles.navItem}>Scan</Text>
           <Text style={styles.navItem}>Pricing</Text>
-          <Pressable style={styles.loginButton} onPress={onBack}>
-            <Text style={styles.loginText}>Login</Text>
-          </Pressable>
+          {isAuthenticated && user ? (
+            <>
+              <Text style={styles.userText}>{user.email}</Text>
+              <Pressable style={styles.logoutButton} onPress={handleLogout}>
+                <Text style={styles.logoutButtonText}>Logout</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Pressable style={styles.loginButton} onPress={onBack}>
+              <Text style={styles.loginText}>Login</Text>
+            </Pressable>
+          )}
         </View>
       </View>
 
@@ -53,8 +135,8 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
           <View style={styles.guestBox}>
             <Text style={styles.guestIcon}>◉</Text>
             <View>
-              <Text style={styles.guestText}>Guest Scans</Text>
-              <Text style={styles.guestMeta}>0/5 used</Text>
+              <Text style={styles.guestText}>{user?.email || 'User'}</Text>
+              <Text style={styles.guestMeta}>Authenticated</Text>
             </View>
           </View>
 
@@ -137,7 +219,10 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
                   <Ionicons name="cloud-upload-outline" size={52} color="#a7b6bf" />
                   <Text style={styles.uploadText}>Click or drag to upload</Text>
                   <Text style={styles.uploadMeta}>PNG, JPG, JPEG up to 10MB</Text>
-                  <Text style={styles.fileName}>{uploadedFile}</Text>
+                  <Text style={styles.fileName}>
+                    {uploadedFile ? `✓ ${uploadedFile}` : 'No file selected'}
+                  </Text>
+                  {error ? <Text style={styles.errorText}>{error}</Text> : null}
                 </View>
 
                 <Pressable style={styles.chooseButton} onPress={handleSelectFile}>
@@ -145,8 +230,12 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
                 </Pressable>
               </View>
 
-              <Pressable style={styles.scanButton} onPress={onScan}>
-                <Text style={styles.scanButtonText}>Scan Now</Text>
+              <Pressable style={styles.scanButton} onPress={handleScan} disabled={isLoading}>
+                {isLoading ? (
+                  <ActivityIndicator color="#111827" size="small" />
+                ) : (
+                  <Text style={styles.scanButtonText}>Scan Now</Text>
+                )}
               </Pressable>
             </View>
           </View>
@@ -186,6 +275,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1f2937',
   },
+  userText: {
+    fontSize: 13,
+    color: '#334155',
+    fontWeight: '600',
+  },
   loginButton: {
     backgroundColor: '#1ea65f',
     borderRadius: 12,
@@ -195,6 +289,32 @@ const styles = StyleSheet.create({
   loginText: {
     color: '#fff',
     fontWeight: '700',
+  },
+  logoutButton: {
+    backgroundColor: '#dc2626',
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  userText: {
+    fontSize: 13,
+    color: '#334155',
+    fontWeight: '600',
+  },
+  logoutButton: {
+    backgroundColor: '#ef4444',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 12,
   },
   contentContainer: {
     paddingVertical: 36,
@@ -429,5 +549,11 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontWeight: '700',
     fontSize: 20,
+  },
+  errorText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#dc2626',
+    fontWeight: '600',
   },
 });

@@ -5,8 +5,9 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 
 import { PORT } from './app/config/env.js';
-import sequelize, { testConnection } from './app/config/database.js';
+import { connectDB, testConnection } from './app/config/database.js';
 import authRoutes from './app/routes/auth.js';
+import predictRoutes from './app/routes/predict.js';
 import { errorHandler } from './app/middlewares/errorHandler.js';
 
 dotenv.config();
@@ -36,6 +37,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/predict', predictRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -55,15 +57,11 @@ app.use((req, res) => {
 // Global error handler (must be last)
 app.use(errorHandler);
 
-// Start server with DB sync
+// Start server with DB connection
 const startServer = async () => {
   try {
-    // Test DB connection
+    await connectDB();
     await testConnection();
-
-    // Sync database
-    await sequelize.sync({ alter: true }); // Use { force: true } in dev to drop and recreate tables
-    console.log('Database synced successfully.');
 
     app.listen(PORT, () => {
       console.log(`Auth server running on http://localhost:${PORT}`);

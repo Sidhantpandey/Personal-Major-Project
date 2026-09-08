@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { LandingScreen } from './src/screens/LandingScreen';
 import { ScanDashboardScreen } from './src/screens/ScanDashboardScreen';
 import { ResultScreen } from './src/screens/ResultScreen';
@@ -52,18 +53,39 @@ const TransitionScreen: React.FC<TransitionScreenProps> = ({ children, screenKey
   );
 };
 
-export default function App() {
-  const [screen, setScreen] = useState<AppScreen>('auth');
+// Main app content component with auth context
+const AppContent: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [screen, setScreen] = useState<AppScreen>('landing');
   const [resultDisease, setResultDisease] = useState('Leaf Spot');
   const [resultConfidence, setResultConfidence] = useState(92);
+  const [resultRecommendations, setResultRecommendations] = useState<string[]>([]);
 
-  const handleScan = () => {
-    setResultDisease('Leaf Spot');
-    setResultConfidence(92);
+  // Update screen when auth state changes
+  useEffect(() => {
+    if (!isAuthenticated && (screen === 'dashboard' || screen === 'result')) {
+      setScreen('auth');
+    }
+  }, [isAuthenticated, screen]);
+
+  const handleScan = (disease: string, confidence: number, recommendations?: string[]) => {
+    setResultDisease(disease);
+    setResultConfidence(confidence);
+    setResultRecommendations(recommendations || []);
     setScreen('result');
   };
 
   const renderScreen = () => {
+    // Protected routes - only show if authenticated
+    if (!isAuthenticated && (screen === 'dashboard' || screen === 'result')) {
+      return (
+        <AuthScreen
+          onBack={() => setScreen('landing')}
+          onContinue={() => setScreen('dashboard')}
+        />
+      );
+    }
+
     switch (screen) {
       case 'landing':
         return (
@@ -91,6 +113,7 @@ export default function App() {
           <ResultScreen
             disease={resultDisease}
             confidence={resultConfidence}
+            recommendations={resultRecommendations}
             onBack={() => setScreen('dashboard')}
           />
         );
@@ -100,11 +123,25 @@ export default function App() {
   };
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        <StatusBar style="dark" />
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <StatusBar style="dark" />
+      {isLoading ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color="#1ea65f" />
+        </View>
+      ) : (
         <TransitionScreen screenKey={screen}>{renderScreen()}</TransitionScreen>
-      </SafeAreaView>
+      )}
+    </SafeAreaView>
+  );
+};
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

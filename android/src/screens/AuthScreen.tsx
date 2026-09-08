@@ -9,8 +9,10 @@ import {
   Text,
   TextInput,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
 
 type AuthMode = 'login' | 'register';
 
@@ -20,22 +22,42 @@ type AuthScreenProps = {
 };
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) => {
+  const { login, register, isLoading } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = () => {
-    const actionText = mode === 'login' ? 'Login' : 'Register';
-    Alert.alert(
-      actionText,
-      mode === 'login'
-        ? `Logged in as ${email || 'user'}`
-        : `Registered as ${fullName || 'new user'}`
-    );
-    if (onContinue) {
-      onContinue();
+  const handleSubmit = async () => {
+    try {
+      setError('');
+
+      // Validation
+      if (!email || !password) {
+        setError('Please fill in all fields');
+        return;
+      }
+
+      if (mode === 'register' && !fullName) {
+        setError('Please enter your full name');
+        return;
+      }
+
+      if (mode === 'login') {
+        await login(email, password);
+      } else {
+        await register(email, password, fullName);
+      }
+
+      if (onContinue) {
+        onContinue();
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Authentication failed';
+      setError(message);
+      Alert.alert('Error', message);
     }
   };
 
@@ -139,9 +161,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) =>
               </View>
             </View>
 
-            <Pressable style={styles.primaryButton} onPress={handleSubmit}>
-              <Text style={styles.primaryButtonText}>{isRegister ? 'Register' : 'Login'}</Text>
+            <Pressable style={styles.primaryButton} onPress={handleSubmit} disabled={isLoading}>
+              {isLoading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.primaryButtonText}>{isRegister ? 'Register' : 'Login'}</Text>
+              )}
             </Pressable>
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <View style={styles.orRow}>
               <View style={styles.divider} />
@@ -359,5 +387,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#64748B',
     fontSize: 12,
+  },
+  errorText: {
+    marginTop: 12,
+    textAlign: 'center',
+    color: '#dc2626',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

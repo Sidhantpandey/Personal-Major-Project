@@ -1,37 +1,32 @@
-import { DataTypes } from 'sequelize';
-import sequelize from '../config/database.js';
+import mongoose from 'mongoose';
 
-const User = sequelize.define('User', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
+const userSchema = new mongoose.Schema({
   email: {
-    type: DataTypes.STRING,
-    allowNull: false,
+    type: String,
+    required: true,
     unique: true,
-    validate: {
-      isEmail: true
-    }
+    lowercase: true,
+    trim: true
   },
   password: {
-    type: DataTypes.STRING,
-    allowNull: false
+    type: String,
+    required: true
   },
   name: {
-    type: DataTypes.STRING,
-    allowNull: false
+    type: String,
+    required: true,
+    trim: true
   }
 }, {
-  tableName: 'users',
   timestamps: true
 });
 
 // Instance method to get public data
-User.prototype.toPublicData = function() {
-  const { password, ...publicData } = this.toJSON();
+userSchema.methods.toPublicData = function () {
+  const { password, ...publicData } = this.toObject();
   return publicData;
 };
+
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 export default User;
