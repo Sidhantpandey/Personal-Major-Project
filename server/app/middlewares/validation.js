@@ -23,3 +23,18 @@ export const validateLogin = [
     .notEmpty()
     .withMessage('Password is required')
 ];
+
+export const validatePredictionUpload = [
+  body('cropType')
+    .trim()
+    .isLength({ min: 2 })
+    .withMessage('Crop type is required and must be at least 2 characters long'),
+  body('latitude')
+    .notEmpty()
+    .isFloat({ min: -90, max: 90 })
+    .withMessage('Latitude must be a number between -90 and 90'),
+  body('longitude')
+    .notEmpty()
+    .isFloat({ min: -180, max: 180 })
+    .withMessage('Longitude must be a number between -180 and 180')
+];

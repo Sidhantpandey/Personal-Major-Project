@@ -1,4 +1,5 @@
 import { validationResult } from 'express-validator';
+import User from '../models/user.js';
 import { register as registerService, login as loginService, logout as logoutService } from '../services/authService.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 
@@ -30,9 +31,25 @@ export const login = async (req, res, next) => {
 
     const { email, password } = req.body;
 
-    const result = await loginService(email, password);
+    const result = loginService ? await loginService(email, password) : null;
 
     sendSuccess(res, 'Login successful', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getCurrentUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+
+    if (!user) {
+      return sendError(res, 'User not found', 404);
+    }
+
+    return sendSuccess(res, 'User profile retrieved successfully', {
+      user: user.toObject ? user.toObject() : user,
+    });
   } catch (error) {
     next(error);
   }

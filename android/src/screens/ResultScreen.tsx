@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { getText } from '../utils/language';
 
 type ResultScreenProps = {
   disease: string;
@@ -20,27 +21,27 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   ],
   onBack,
 }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, language } = useAuth();
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       onBack();
     }
   }, [isAuthenticated, onBack]);
+
   return (
     <View style={styles.screen}>
       <View style={styles.topBar}>
         <Text style={styles.brand}>🌱 KrishiScan</Text>
         <View style={styles.navRow}>
-          <Text style={styles.navItem}>Home</Text>
-          <Text style={styles.navItem}>Scan</Text>
-          <Text style={styles.navItem}>Pricing</Text>
+          <Text style={styles.navItem}>{getText(language, 'home')}</Text>
+          <Text style={styles.navItem}>{getText(language, 'scan')}</Text>
+          <Text style={styles.navItem}>{getText(language, 'pricing')}</Text>
           {isAuthenticated && user ? (
             <Text style={styles.userEmail}>{user.email}</Text>
           ) : (
             <Pressable style={styles.loginButton} onPress={onBack}>
-              <Text style={styles.loginText}>Login</Text>
+              <Text style={styles.loginText}>{getText(language, 'login')}</Text>
             </Pressable>
           )}
         </View>
@@ -52,11 +53,11 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
             <Ionicons name="checkmark-circle" size={40} color="#1ea65f" />
           </View>
 
-          <Text style={styles.label}>Disease Prediction</Text>
+          <Text style={styles.label}>{getText(language, 'diseasePrediction')}</Text>
           <Text style={styles.disease}>{disease}</Text>
 
           <View style={styles.confidenceRow}>
-            <Text style={styles.confidenceLabel}>Confidence</Text>
+            <Text style={styles.confidenceLabel}>{getText(language, 'confidence')}</Text>
             <Text style={styles.confidenceValue}>{confidence}%</Text>
           </View>
 
@@ -65,15 +66,16 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           </View>
 
           <View style={styles.summaryBox}>
-            <Text style={styles.summaryTitle}>Diagnosis Summary</Text>
+            <Text style={styles.summaryTitle}>{getText(language, 'diagnosisSummary')}</Text>
             <Text style={styles.summaryText}>
-              The crop shows signs of early fungal damage. Recommended treatment should begin immediately to
-              prevent further spread.
+              {language === 'hi'
+                ? 'फसल में प्रारंभिक फंगल क्षति के संकेत दिखाई दे रहे हैं। आगे फैलने से रोकने के लिए तुरंत उपचार शुरू करना चाहिए।'
+                : 'The crop shows signs of early fungal damage. Recommended treatment should begin immediately to prevent further spread.'}
             </Text>
           </View>
 
           <View style={styles.tipsBox}>
-            <Text style={styles.summaryTitle}>Recommended Actions</Text>
+            <Text style={styles.summaryTitle}>{getText(language, 'recommendedActions')}</Text>
             {recommendations.map((rec, idx) => (
               <Text key={idx} style={styles.tipText}>
                 • {rec}
@@ -82,7 +84,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           </View>
 
           <Pressable style={styles.primaryButton} onPress={onBack}>
-            <Text style={styles.primaryButtonText}>Back to Dashboard</Text>
+            <Text style={styles.primaryButtonText}>{getText(language, 'backDashboard')}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -200,47 +202,43 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   summaryBox: {
-    marginTop: 26,
-    backgroundColor: '#f0f9f2',
-    borderWidth: 1,
-    borderColor: '#d3eedb',
+    backgroundColor: '#f8fafc',
     borderRadius: 16,
-    padding: 18,
+    padding: 16,
+    marginTop: 24,
   },
   summaryTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16,
     color: '#111827',
+    fontWeight: '800',
     marginBottom: 10,
   },
   summaryText: {
-    fontSize: 15,
     color: '#475569',
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 22,
   },
   tipsBox: {
-    marginTop: 20,
     backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#dfeae3',
     borderRadius: 16,
-    padding: 18,
+    padding: 16,
+    marginTop: 20,
   },
   tipText: {
-    fontSize: 15,
     color: '#334155',
-    marginBottom: 8,
+    fontSize: 14,
+    lineHeight: 24,
   },
   primaryButton: {
+    marginTop: 24,
     backgroundColor: '#1ea65f',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 24,
   },
   primaryButtonText: {
     color: '#fff',
-    fontWeight: '800',
     fontSize: 16,
+    fontWeight: '700',
   },
 });

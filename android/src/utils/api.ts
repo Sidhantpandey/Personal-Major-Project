@@ -1,7 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Default to Android emulator host. Override with `EXPO_PUBLIC_API_BASE_URL` env var for device or production.
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://10.0.2.2:3000/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
+
+const normalizeLanguageCode = (language: string = 'en'): string => {
+  const normalized = String(language).trim().toLowerCase();
+  if (normalized === 'hi' || normalized === 'hindi') return 'hi';
+  return 'en';
+};
 
 // Token management
 const getToken = async (): Promise<string | null> => {
@@ -138,15 +144,25 @@ export const authAPI = {
 
 // Prediction APIs
 export const predictionAPI = {
-  uploadPhoto: async (imageUri: string, cropType: string, language: string = 'English') => {
+  uploadPhoto: async (
+    imageUri: string,
+    cropType: string,
+    language: string = 'en',
+    latitude?: number,
+    longitude?: number
+  ) => {
     const formData = new FormData();
 
-    // Convert image URI to blob
     const response = await fetch(imageUri);
     const blob = await response.blob();
     formData.append('image', blob, 'photo.jpg');
     formData.append('cropType', cropType);
-    formData.append('language', language);
+    formData.append('language', normalizeLanguageCode(language));
+
+    if (typeof latitude === 'number' && typeof longitude === 'number') {
+      formData.append('latitude', String(latitude));
+      formData.append('longitude', String(longitude));
+    }
 
     return apiRequest('/predict/upload', {
       method: 'POST',

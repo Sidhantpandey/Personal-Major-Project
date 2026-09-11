@@ -10,24 +10,24 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { useAuth } from '../context/AuthContext';
 import { predictionAPI } from '../utils/api';
+import { getText, LANGUAGE_OPTIONS } from '../utils/language';
 
 type ScanDashboardScreenProps = {
-  onScan: (disease: string, confidence: number) => void;
+  onScan: (disease: string, confidence: number, recommendations?: string[]) => void;
   onBack: () => void;
 };
 
 export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan, onBack }) => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, language, setLanguage } = useAuth();
   const [selectedCrop, setSelectedCrop] = useState<'Sugarcane' | 'Other Crops'>('Sugarcane');
-  const [language, setLanguage] = useState<'English' | 'हिन्दी'>('English');
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       onBack();
@@ -44,9 +44,10 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
       });
 
       if (!result.canceled && result.assets[0]) {
-        const { uri, filename } = result.assets[0];
-        setImageUri(uri);
-        setUploadedFile(filename || 'photo.jpg');
+        const asset = result.assets[0];
+        const fileName = asset.fileName || 'photo.jpg';
+        setImageUri(asset.uri);
+        setUploadedFile(fileName);
         setError('');
       }
     } catch (err) {
@@ -59,8 +60,8 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
   const handleScan = async () => {
     try {
       if (!imageUri) {
-        setError('Please select an image first');
-        Alert.alert('Error', 'Please select an image first');
+        setError(getText(language, 'selectImage'));
+        Alert.alert('Error', getText(language, 'selectImage'));
         return;
       }
 
@@ -73,12 +74,37 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
       setIsLoading(true);
       setError('');
 
-      const response = await predictionAPI.uploadPhoto(imageUri, selectedCrop, language);
-      
-      if (response.data) {
-        const { disease, confidence } = response.data;
-        onScan(disease, confidence);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setError(getText(language, 'locationRequired'));
+        Alert.alert('Location permission required', getText(language, 'locationRequired'));
+        setIsLoading(false);
+        return;
       }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      const latitude = location.coords.latitude;
+      const longitude = location.coords.longitude;
+
+      const response = await predictionAPI.uploadPhoto(
+        imageUri,
+        selectedCrop,
+        language,
+        latitude,
+        longitude
+      );
+
+      const payload = response?.data ?? response;
+      const diseaseLabel = payload?.diseaseLabel || payload?.disease || 'Unknown';
+      const confidence = Number(payload?.confidence ?? 0);
+      const recommendations = Array.isArray(payload?.recommendations)
+        ? payload.recommendations
+        : [];
+
+      onScan(diseaseLabel, confidence, recommendations);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to process scan';
       setError(message);
@@ -102,19 +128,19 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
       <View style={styles.topBar}>
         <Text style={styles.brand}>🌱 KrishiScan</Text>
         <View style={styles.navRow}>
-          <Text style={styles.navItem}>Home</Text>
-          <Text style={styles.navItem}>Scan</Text>
-          <Text style={styles.navItem}>Pricing</Text>
+          <Text style={styles.navItem}>{getText(language, 'home')}</Text>
+          <Text style={styles.navItem}>{getText(language, 'scan')}</Text>
+          <Text style={styles.navItem}>{getText(language, 'pricing')}</Text>
           {isAuthenticated && user ? (
             <>
               <Text style={styles.userText}>{user.email}</Text>
               <Pressable style={styles.logoutButton} onPress={handleLogout}>
-                <Text style={styles.logoutButtonText}>Logout</Text>
+                <Text style={styles.logoutButtonText}>{getText(language, 'logout')}</Text>
               </Pressable>
             </>
           ) : (
             <Pressable style={styles.loginButton} onPress={onBack}>
-              <Text style={styles.loginText}>Login</Text>
+              <Text style={styles.loginText}>{getText(language, 'login')}</Text>
             </Pressable>
           )}
         </View>
@@ -129,20 +155,20 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
             <Text style={styles.sectionTag}>AI SCANNER</Text>
           </View>
 
-          <Text style={styles.title}>Scan Your Crop</Text>
-          <Text style={styles.subtitle}>Upload a clear photo of the affected leaf for instant AI-powered diagnosis</Text>
+          <Text style={styles.title}>{getText(language, 'dashboardTitle')}</Text>
+          <Text style={styles.subtitle}>{getText(language, 'dashboardSubtitle')}</Text>
 
           <View style={styles.guestBox}>
             <Text style={styles.guestIcon}>◉</Text>
             <View>
-              <Text style={styles.guestText}>{user?.email || 'User'}</Text>
-              <Text style={styles.guestMeta}>Authenticated</Text>
+              <Text style={styles.guestText}>{user?.email || getText(language, 'guestBox')}</Text>
+              <Text style={styles.guestMeta}>{getText(language, 'authUser')}</Text>
             </View>
           </View>
 
           <View style={styles.grid}>
             <View style={styles.leftPanel}>
-              <Text style={styles.label}>Select Crop Type</Text>
+              <Text style={styles.label}>{getText(language, 'cropType')}</Text>
               <View style={styles.optionRow}>
                 <Pressable
                   style={[
@@ -152,7 +178,7 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
                   onPress={() => setSelectedCrop('Sugarcane')}
                 >
                   <Text style={styles.cropIcon}>🌾</Text>
-                  <Text style={styles.cropText}>Sugarcane</Text>
+                  <Text style={styles.cropText}>{getText(language, 'sugarcane')}</Text>
                   <Text style={styles.cropMeta}>12 diseases</Text>
                 </Pressable>
 
@@ -164,40 +190,31 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
                   onPress={() => setSelectedCrop('Other Crops')}
                 >
                   <Text style={styles.cropIcon}>🌽</Text>
-                  <Text style={styles.cropText}>Other Crops</Text>
+                  <Text style={styles.cropText}>{getText(language, 'otherCrops')}</Text>
                   <Text style={styles.cropMeta}>15 diseases</Text>
                 </Pressable>
               </View>
 
-              <Text style={styles.label}>Language</Text>
-              <Pressable
-                style={[
-                  styles.languageCard,
-                  language === 'English' && styles.languageCardActive,
-                ]}
-                onPress={() => setLanguage('English')}
-              >
-                <Text style={styles.flag}>🇬🇧</Text>
-                <Text style={styles.languageText}>English</Text>
-              </Pressable>
-
-              <Pressable
-                style={[
-                  styles.languageCard,
-                  language === 'हिन्दी' && styles.languageCardActive,
-                ]}
-                onPress={() => setLanguage('हिन्दी')}
-              >
-                <Text style={styles.flag}>🇮🇳</Text>
-                <Text style={styles.languageText}>हिन्दी</Text>
-              </Pressable>
+              <Text style={styles.label}>{getText(language, 'language')}</Text>
+              <View style={styles.languageRow}>
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <Pressable
+                    key={option.code}
+                    style={[styles.languageCard, language === option.code && styles.languageCardActive]}
+                    onPress={() => setLanguage(option.code)}
+                  >
+                    <Text style={styles.flag}>{option.code === 'en' ? '🇬🇧' : '🇮🇳'}</Text>
+                    <Text style={styles.languageText}>{option.native}</Text>
+                  </Pressable>
+                ))}
+              </View>
 
               <View style={styles.tipBox}>
-                <Text style={styles.tipTitle}>Tips for Best Results</Text>
-                <Text style={styles.tipItem}>✓ Take photo in good natural lighting</Text>
-                <Text style={styles.tipItem}>✓ Focus clearly on the affected area</Text>
-                <Text style={styles.tipItem}>✓ Avoid blurry or dark images</Text>
-                <Text style={styles.tipItem}>✓ Scan one leaf at a time</Text>
+                <Text style={styles.tipTitle}>{getText(language, 'tips')}</Text>
+                <Text style={styles.tipItem}>✓ {getText(language, 'tip1')}</Text>
+                <Text style={styles.tipItem}>✓ {getText(language, 'tip2')}</Text>
+                <Text style={styles.tipItem}>✓ {getText(language, 'tip3')}</Text>
+                <Text style={styles.tipItem}>✓ {getText(language, 'tip4')}</Text>
               </View>
             </View>
 
@@ -217,24 +234,24 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
 
                 <View style={styles.uploadBody}>
                   <Ionicons name="cloud-upload-outline" size={52} color="#a7b6bf" />
-                  <Text style={styles.uploadText}>Click or drag to upload</Text>
-                  <Text style={styles.uploadMeta}>PNG, JPG, JPEG up to 10MB</Text>
+                  <Text style={styles.uploadText}>{getText(language, 'uploadText')}</Text>
+                  <Text style={styles.uploadMeta}>{getText(language, 'uploadMeta')}</Text>
                   <Text style={styles.fileName}>
-                    {uploadedFile ? `✓ ${uploadedFile}` : 'No file selected'}
+                    {uploadedFile ? `✓ ${uploadedFile}` : getText(language, 'noFile')}
                   </Text>
                   {error ? <Text style={styles.errorText}>{error}</Text> : null}
                 </View>
 
                 <Pressable style={styles.chooseButton} onPress={handleSelectFile}>
-                  <Text style={styles.chooseButtonText}>Choose File</Text>
+                  <Text style={styles.chooseButtonText}>{getText(language, 'chooseFile')}</Text>
                 </Pressable>
               </View>
 
               <Pressable style={styles.scanButton} onPress={handleScan} disabled={isLoading}>
                 {isLoading ? (
-                  <ActivityIndicator color="#111827" size="small" />
+                  <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.scanButtonText}>Scan Now</Text>
+                  <Text style={styles.scanButtonText}>{getText(language, 'scanNow')}</Text>
                 )}
               </Pressable>
             </View>
@@ -276,133 +293,116 @@ const styles = StyleSheet.create({
     color: '#1f2937',
   },
   userText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#334155',
     fontWeight: '600',
   },
   loginButton: {
-    backgroundColor: '#1ea65f',
-    borderRadius: 12,
+    backgroundColor: '#15a85d',
     paddingHorizontal: 18,
     paddingVertical: 10,
+    borderRadius: 12,
   },
   loginText: {
     color: '#fff',
     fontWeight: '700',
   },
   logoutButton: {
-    backgroundColor: '#dc2626',
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-  },
-  logoutButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  userText: {
-    fontSize: 13,
-    color: '#334155',
-    fontWeight: '600',
-  },
-  logoutButton: {
     backgroundColor: '#ef4444',
-    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 8,
+    borderRadius: 10,
   },
   logoutButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 12,
   },
   contentContainer: {
-    paddingVertical: 36,
-    paddingHorizontal: 16,
-    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
   },
   centerCard: {
-    width: '100%',
-    maxWidth: 980,
-    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 28,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#dfeae3',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   cardHeaderWrap: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: 10,
+    marginBottom: 12,
   },
   cameraBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#1ea65f',
-    alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    alignItems: 'center',
   },
   sectionTag: {
     color: '#1ea65f',
-    letterSpacing: 1.4,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 1,
     fontSize: 12,
   },
   title: {
-    fontSize: 54,
+    fontSize: 28,
     fontWeight: '800',
     color: '#111827',
-    textAlign: 'center',
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 17,
     color: '#64748B',
-    marginTop: 8,
-    textAlign: 'center',
+    fontSize: 15,
+    marginBottom: 18,
   },
   guestBox: {
-    marginTop: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f2d9',
-    borderColor: '#e7d688',
+    backgroundColor: '#f0fdf4',
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderColor: '#bbf7d0',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 18,
   },
   guestIcon: {
+    color: '#1ea65f',
+    marginRight: 8,
     fontSize: 18,
-    color: '#f59e0b',
-    marginRight: 10,
   },
   guestText: {
+    color: '#111827',
     fontWeight: '700',
-    color: '#1f2937',
-    fontSize: 14,
   },
   guestMeta: {
     color: '#64748B',
-    fontSize: 13,
+    fontSize: 12,
   },
   grid: {
-    width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: 28,
-    gap: 26,
+    gap: 20,
   },
   leftPanel: {
     flex: 1,
-    maxWidth: 430,
+    minWidth: 280,
   },
   rightPanel: {
     flex: 1,
-    maxWidth: 430,
+    minWidth: 280,
   },
   label: {
-    fontSize: 14,
+    color: '#1f2937',
     fontWeight: '700',
-    color: '#334155',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   optionRow: {
     flexDirection: 'row',
@@ -411,149 +411,152 @@ const styles = StyleSheet.create({
   },
   cropCard: {
     flex: 1,
-    paddingVertical: 18,
+    backgroundColor: '#f8fafc',
     borderRadius: 14,
-    backgroundColor: '#f5f7f6',
     borderWidth: 1,
     borderColor: '#dfeae3',
+    padding: 14,
     alignItems: 'center',
   },
   cropCardActive: {
-    backgroundColor: '#eefaf2',
-    borderColor: '#6bc38d',
+    borderColor: '#1ea65f',
+    backgroundColor: '#ecfdf5',
   },
   cropIcon: {
-    fontSize: 30,
+    fontSize: 22,
+    marginBottom: 6,
   },
   cropText: {
-    marginTop: 10,
-    fontSize: 18,
     fontWeight: '700',
     color: '#111827',
   },
   cropMeta: {
     fontSize: 12,
     color: '#64748B',
-    marginTop: 4,
+  },
+  languageRow: {
+    gap: 10,
+    marginBottom: 16,
   },
   languageCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f7f6',
+    gap: 10,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#dfeae3',
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    marginBottom: 12,
+    padding: 12,
   },
   languageCardActive: {
-    borderColor: '#64b77d',
-    backgroundColor: '#eefaf2',
+    backgroundColor: '#ecfdf5',
+    borderColor: '#1ea65f',
   },
   flag: {
-    fontSize: 24,
-    marginRight: 12,
+    fontSize: 18,
   },
   languageText: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
     color: '#111827',
   },
   tipBox: {
-    backgroundColor: '#ebf4ff',
-    borderRadius: 14,
-    padding: 18,
-    marginTop: 8,
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#cfe0f5',
+    borderColor: '#dfeae3',
   },
   tipTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1f2937',
-    marginBottom: 12,
+    color: '#111827',
+    marginBottom: 10,
   },
   tipItem: {
-    fontSize: 13,
     color: '#334155',
-    marginBottom: 8,
+    marginBottom: 6,
+    fontSize: 13,
   },
   uploadCard: {
-    backgroundColor: '#f5f7f6',
+    backgroundColor: '#f8fafc',
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#dfeae3',
-    borderRadius: 18,
     padding: 16,
-    minHeight: 420,
-    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   uploadHeader: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 8,
+    marginBottom: 18,
   },
   iconButton: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#dfeae3',
-    borderRadius: 8,
-    width: 34,
-    height: 34,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#e6faf0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   uploadBody: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   uploadText: {
-    marginTop: 14,
-    fontSize: 18,
-    color: '#475569',
-    fontWeight: '600',
+    marginTop: 12,
+    color: '#0f172a',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   uploadMeta: {
     marginTop: 8,
-    fontSize: 13,
     color: '#64748B',
+    fontSize: 12,
+    textAlign: 'center',
   },
   fileName: {
     marginTop: 12,
-    fontSize: 12,
     color: '#1ea65f',
+    fontSize: 12,
     fontWeight: '700',
+    textAlign: 'center',
+  },
+  errorText: {
+    marginTop: 12,
+    color: '#dc2626',
+    fontSize: 12,
+    fontWeight: '600',
   },
   chooseButton: {
+    marginTop: 16,
     backgroundColor: '#1ea65f',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 14,
   },
   chooseButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 16,
   },
   scanButton: {
-    backgroundColor: '#dfe7e2',
+    backgroundColor: '#15a85d',
     borderRadius: 14,
     paddingVertical: 16,
-    marginTop: 18,
     alignItems: 'center',
   },
   scanButtonText: {
-    color: '#111827',
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '700',
-    fontSize: 20,
-  },
-  errorText: {
-    marginTop: 8,
-    fontSize: 12,
-    color: '#dc2626',
-    fontWeight: '600',
   },
 });
+
+export default ScanDashboardScreen;
