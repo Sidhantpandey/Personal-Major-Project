@@ -4,12 +4,9 @@ const LeafIcon = ({ style, className }) => (
   </svg>
 );
 
-import { useNavigate } from "react-router-dom";
-
 export default function HeroSection() {
-  const navigate = useNavigate();
   return (
-    <div id="hero">
+    <>
       <style>{`        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
 
         .hero-title {
@@ -118,7 +115,7 @@ export default function HeroSection() {
 
           {/* LEFT: Content */}
           <div>
-            <div className="badge-tag" style={{ marginBottom: 16 }}>AI & MACHINE LEARNING</div>
+            <div className="badge-tag" style={{ marginBottom: 16 }}>🌱 AI & MACHINE LEARNING</div>
 
             <h1 className="hero-title" style={{ marginBottom: 20 }}>
               Discover Plant Health<br />
@@ -131,13 +128,13 @@ export default function HeroSection() {
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 32 }}>
               {["Potato", "Tomato", "Cotton", "Grapes"].map(crop => (
-                <span className="tag-pill" key={crop}>{crop}</span>
+                <span className="tag-pill" key={crop}>🌿 {crop}</span>
               ))}
             </div>
 
             <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 40 }}>
-              <button className="btn-primary" onClick={() => navigate("/analysis")}>Get Started</button>
-              <button className="btn-outline" onClick={() => navigate("/demo")}>Watch Demo</button>
+              <button className="btn-primary">Get Started</button>
+              <button className="btn-outline">Watch Demo</button>
             </div>
 
             {/* Trust Stats */}
@@ -194,6 +191,6 @@ export default function HeroSection() {
         </div>
       </section>
       </div>
-    </div>
+    </>
   );
 }

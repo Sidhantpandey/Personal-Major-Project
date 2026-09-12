@@ -1,6 +1,6 @@
 export default function CTAAndFooter() {
   return (
-    <div id="footer">
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
 
@@ -58,7 +58,7 @@ export default function CTAAndFooter() {
             {/* Brand */}
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                <div style={{ width: 36, height: 36, background: "rgba(255,255,255,0.15)", borderRadius: 10 }} />
+                <div style={{ width: 36, height: 36, background: "rgba(255,255,255,0.15)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🌿</div>
                 <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 800, fontSize: 18 }}>AgriVision</div>
               </div>
               <p style={{ fontSize: 14, opacity: 0.7, lineHeight: 1.7, maxWidth: 280, fontFamily: "'DM Sans', sans-serif" }}>
@@ -88,6 +88,6 @@ export default function CTAAndFooter() {
           </div>
         </div>
       </footer>
-    </div>
+    </>
   );
 }
