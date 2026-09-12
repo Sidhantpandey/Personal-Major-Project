@@ -1,6 +1,6 @@
 export default function AboutSection() {
   return (
-    <div id="about">
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap');
 
@@ -284,7 +284,7 @@ export default function AboutSection() {
           {/* Right: Text */}
           <div className="about-text-wrap">
             <div className="about-tag">
-              About Us
+              <span>🌱</span> About Us
             </div>
 
             <h2 className="about-heading">
@@ -307,7 +307,7 @@ export default function AboutSection() {
         <div className="about-bottom">
 
           <div className="about-feat-card">
-            <div className="feat-icon-circle" />
+            <div className="feat-icon-circle">🔬</div>
             <div>
               <div className="feat-card-title">Instant AI Diagnosis</div>
               <div className="feat-card-sub">Results in under 2 seconds.</div>
@@ -316,14 +316,14 @@ export default function AboutSection() {
 
           {/* Center award */}
           <div className="about-award-center">
-            <div className="award-laurel"><span style={{fontSize:14}}>Award</span></div>
+            <div className="award-laurel">🌿 <span style={{fontSize:14}}>❧</span> 🌿</div>
             <div className="award-title">Excellence in AgriTech Innovation</div>
-            <div className="award-stars">★★★★★</div>
+            <div className="award-stars">★ ★ ★ ★ ★</div>
             <div className="award-sub">KIET — 2025</div>
           </div>
 
           <div className="about-feat-card">
-            <div className="feat-icon-circle" />
+            <div className="feat-icon-circle">♻️</div>
             <div>
               <div className="feat-card-title">Sustainable Farming</div>
               <div className="feat-card-sub">Eco-conscious crop care.</div>
@@ -333,6 +333,6 @@ export default function AboutSection() {
         </div>
 
       </section>
-    </div>
+    </>
   );
 }

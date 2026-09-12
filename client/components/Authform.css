@@ -1,0 +1,533 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+
+/* =========================================================
+   BODY
+========================================================= */
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #f0f7f0;
+  margin: 0;
+  padding: 0;
+}
+
+
+/* =========================================================
+   MAIN CONTAINER
+========================================================= */
+
+.papa {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+
+/* =========================================================
+   AUTH CONTAINER
+========================================================= */
+
+.containe {
+  position: relative;
+  width: 850px;
+  height: 550px;
+
+  background: #ffffff;
+
+  margin: 20px;
+
+  border-radius: 30px;
+
+  box-shadow: 0 20px 50px rgba(58, 125, 50, 0.25);
+
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADINGS
+========================================================= */
+
+.containe h1 {
+  font-size: 36px;
+  margin-bottom: 10px;
+  color: #1b4a17;
+}
+
+
+/* =========================================================
+   FORM BOX
+========================================================= */
+
+.for-box {
+  position: absolute;
+
+  right: 0;
+
+  width: 50%;
+  height: 100%;
+
+  background: #ffffff;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #1b4a17;
+
+  text-align: center;
+
+  padding: 40px;
+
+  box-sizing: border-box;
+
+  /*
+    IMPORTANT:
+    Form is above the decorative toggle layer.
+  */
+  z-index: 5;
+
+  transition:
+    0.6s ease-in-out 1.2s,
+    visibility 0s 1s;
+}
+
+
+/* Form movement when register is active */
+
+.containe.active .for-box {
+  right: 50%;
+}
+
+
+/* =========================================================
+   FORM
+========================================================= */
+
+.for-box form {
+  width: 100%;
+}
+
+
+/* =========================================================
+   REGISTER FORM
+========================================================= */
+
+.for-box.register {
+  visibility: hidden;
+}
+
+
+/* Show register form */
+
+.containe.active .for-box.register {
+  visibility: visible;
+}
+
+
+/* =========================================================
+   INPUT BOX
+========================================================= */
+
+.input-box {
+  position: relative;
+  margin: 25px 0;
+}
+
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+.input-box input {
+  width: 100%;
+
+  padding: 13px 50px 13px 20px;
+
+  box-sizing: border-box;
+
+  background: #f0f7f0;
+
+  border-radius: 8px;
+
+  border: 1px solid #cfe9c9;
+
+  outline: none;
+
+  font-size: 16px;
+
+  color: #1b4a17;
+
+  font-weight: 500;
+
+  /*
+    IMPORTANT:
+    Makes sure input receives mouse/keyboard events.
+  */
+  pointer-events: auto;
+}
+
+
+/* =========================================================
+   INPUT PLACEHOLDER
+========================================================= */
+
+.input-box input::placeholder {
+  color: #6c8f69;
+}
+
+
+/* =========================================================
+   INPUT ICON
+========================================================= */
+
+.input-box i {
+  position: absolute;
+
+  right: 20px;
+
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  font-size: 20px;
+
+  color: #3a7d32;
+
+  /*
+    Icon should NOT block input clicks.
+  */
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   PRIMARY BUTTON
+========================================================= */
+
+.butn {
+  width: 100%;
+
+  height: 48px;
+
+  background: #3a7d32;
+
+  border-radius: 8px;
+
+  border: none;
+
+  cursor: pointer;
+
+  font-size: 16px;
+
+  color: #ffffff;
+
+  font-weight: 600;
+
+  transition: 0.3s;
+
+  pointer-events: auto;
+}
+
+
+/* Button hover */
+
+.butn:hover {
+  background: #2d6128;
+}
+
+
+/* =========================================================
+   TOGGLE BOX
+========================================================= */
+
+.toggle-box {
+  position: absolute;
+
+  width: 100%;
+  height: 100%;
+
+  /*
+    IMPORTANT FIX:
+    This layer is decorative and should NOT
+    block clicks on the forms.
+  */
+  pointer-events: none;
+
+  z-index: 2;
+}
+
+
+/* =========================================================
+   GREEN TOGGLE BACKGROUND
+========================================================= */
+
+.toggle-box::before {
+  content: '';
+
+  position: absolute;
+
+  left: -250%;
+
+  width: 300%;
+  height: 100%;
+
+  background: linear-gradient(
+    145deg,
+    #3a7d32,
+    #6acd5a
+  );
+
+  border-radius: 150px;
+
+  z-index: 2;
+
+  transition: 1.8s ease-in-out;
+
+  /*
+    IMPORTANT:
+    Decorative green shape cannot block inputs.
+  */
+  pointer-events: none;
+}
+
+
+/* Move green background */
+
+.containe.active .toggle-box::before {
+  left: 50%;
+}
+
+
+/* =========================================================
+   TOGGLE PANELS
+========================================================= */
+
+.toggle-panel {
+  position: absolute;
+
+  width: 50%;
+  height: 100%;
+
+  color: #ffffff;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
+
+  align-items: center;
+
+  /*
+    Keep text/button above green background.
+  */
+  z-index: 3;
+
+  transition: 0.6s ease-in-out;
+
+  /*
+    Panel itself doesn't block forms.
+  */
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   TOGGLE PANEL BUTTON
+========================================================= */
+
+.toggle-panel .butn {
+  width: 160px;
+
+  height: 46px;
+
+  background: transparent;
+
+  border: 2px solid #ffffff;
+
+  color: #ffffff;
+
+  /*
+    Button MUST remain clickable.
+  */
+  pointer-events: auto;
+}
+
+
+/* =========================================================
+   TOGGLE LEFT
+========================================================= */
+
+.toggle-panel.toggle-left {
+  left: 0;
+
+  transition-delay: 1.2s;
+}
+
+
+/* Move left panel */
+
+.containe.active .toggle-panel.toggle-left {
+  left: -50%;
+
+  transition-delay: 0.6s;
+}
+
+
+/* =========================================================
+   TOGGLE RIGHT
+========================================================= */
+
+.toggle-panel.toggle-right {
+  right: -50%;
+
+  transition-delay: 0.6s;
+}
+
+
+/* Show right panel */
+
+.containe.active .toggle-panel.toggle-right {
+  right: 0;
+
+  transition-delay: 1.2s;
+}
+
+
+/* =========================================================
+   TOGGLE HEADING
+========================================================= */
+
+.toggle-panel h1 {
+  color: #ffffff;
+}
+
+
+/* =========================================================
+   TOGGLE PARAGRAPH
+========================================================= */
+
+.toggle-panel p {
+  margin: 10px 0 20px;
+}
+
+
+/* =========================================================
+   OUTLINE BUTTON HOVER
+========================================================= */
+
+.toggle-panel .butn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media screen and (max-width: 650px) {
+
+  .containe {
+    width: 100%;
+
+    height: calc(100vh - 40px);
+
+    margin: 20px;
+
+    border-radius: 20px;
+  }
+
+
+  /* Form */
+
+  .for-box {
+    bottom: 0;
+
+    width: 100%;
+
+    height: 70%;
+
+    padding: 30px;
+  }
+
+
+  /* Active form */
+
+  .containe.active .for-box {
+    right: 0;
+
+    bottom: 30%;
+  }
+
+
+  /* Toggle background */
+
+  .toggle-box::before {
+    left: 0;
+
+    top: -270%;
+
+    width: 100%;
+
+    height: 300%;
+
+    border-radius: 20vw;
+  }
+
+
+  /* Active toggle background */
+
+  .containe.active .toggle-box::before {
+    left: 0;
+
+    top: 70%;
+  }
+
+
+  /* Toggle panel */
+
+  .toggle-panel {
+    width: 100%;
+
+    height: 30%;
+  }
+
+
+  /* Left panel */
+
+  .toggle-panel.toggle-left {
+    top: 0;
+  }
+
+
+  /* Right panel */
+
+  .toggle-panel.toggle-right {
+    bottom: -30%;
+  }
+
+
+  /* Active right panel */
+
+  .containe.active .toggle-panel.toggle-right {
+    bottom: 0;
+  }
+
+
+  /* Heading */
+
+  .containe h1 {
+    font-size: 28px;
+  }
+
+
+  /* Input */
+
+  .input-box {
+    margin: 18px 0;
+  }
+
+}

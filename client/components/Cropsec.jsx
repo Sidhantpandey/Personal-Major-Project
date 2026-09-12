@@ -1,8 +1,8 @@
 const crops = [
-  { name: "Potato", diseases: "Early Blight, Late Blight" },
-  { name: "Tomato", diseases: "Leaf Mold, Bacterial Spot" },
-  { name: "Cotton", diseases: "Bollworm, Leaf Curl" },
-  { name: "Grapes", diseases: "Powdery Mildew, Esca" },
+  { name: "Potato", diseases: "Early Blight, Late Blight", emoji: "🥔" },
+  { name: "Tomato", diseases: "Leaf Mold, Bacterial Spot", emoji: "🍅" },
+  { name: "Cotton", diseases: "Bollworm, Leaf Curl", emoji: "🌾" },
+  { name: "Grapes", diseases: "Powdery Mildew, Esca", emoji: "🍇" },
 ];
 
 const steps = [
@@ -14,7 +14,7 @@ const steps = [
 
 export default function CropsSection() {
   return (
-    <div id="crops">
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
         .crop-card {
@@ -60,8 +60,9 @@ export default function CropsSection() {
               Our CNN models are specifically trained on four major crop species, achieving over 90% test accuracy. We're continuously expanding our crop library to support more agricultural needs.
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              {crops.map(({ name, diseases }) => (
+              {crops.map(({ name, diseases, emoji }) => (
                 <div className="crop-card" key={name}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>{emoji}</div>
                   <div style={{ fontWeight: 700, color: "#1b4a17", marginBottom: 4 }}>{name}</div>
                   <div style={{ fontSize: 12, color: "#6a9e60" }}>{diseases}</div>
                 </div>
@@ -92,8 +93,9 @@ export default function CropsSection() {
 
             <button className="try-free-btn">Try For Free →</button>
           </div>
+
         </div>
       </section>
-    </div>
+    </>
   );
 }

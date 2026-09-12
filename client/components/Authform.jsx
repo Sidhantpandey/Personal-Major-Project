@@ -1,7 +1,7 @@
+import axios from 'axios';
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import './Authform.css';
 
 const AuthForm = () => {
@@ -9,53 +9,80 @@ const AuthForm = () => {
   const [fullname, setFullname] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
-  const { login, register } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
+const handleLogin = async (e) => {
+  e.preventDefault();
 
-    try {
-      const response = await login({ email, password });
-      if (response.success) {
-        toast.success('Login successful');
-        setEmail('');
-        setPassword('');
-        navigate('/dashboard');
-      } else {
-        toast.error(response.message || 'Login failed');
+  try {
+    const response = await axios.post(
+      'http://localhost:3000/api/auth/login',
+      {
+        email,
+        password
       }
-    } catch (error) {
-      toast.error(error.message || 'Login failed');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    );
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
+    console.log('Login Response:', response.data);
 
-    try {
-      const response = await register({ name: fullname, email, password });
-      if (response.success) {
-        toast.success('Registration successful');
-        setFullname('');
-        setEmail('');
-        setPassword('');
-        navigate('/dashboard');
-      } else {
-        toast.error(response.message || 'Registration failed');
+    // JWT token save
+    localStorage.setItem('token', response.data.data.token);
+
+    // User data save (optional but useful)
+    localStorage.setItem(
+      'user',
+      JSON.stringify(response.data.data.user)
+    );
+
+    toast.success('Login successful');
+
+    setEmail('');
+    setPassword('');
+
+    navigate('/home');
+
+  } catch (error) {
+    console.error('Login Error:', error);
+
+    toast.error(
+      error.response?.data?.message || 'Login failed'
+    );
+  }
+};
+
+const handleRegister = async (e) => {
+  e.preventDefault();
+
+  try {
+    const response = await axios.post(
+      'http://localhost:3000/api/auth/register',
+      {
+        name: fullname,
+        email,
+        password
       }
-    } catch (error) {
-      toast.error(error.message || 'Registration failed');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    );
+
+    console.log('Register Response:', response.data);
+
+    toast.success('Registration successful');
+
+    setFullname('');
+    setEmail('');
+    setPassword('');
+
+    // Login panel par wapas
+    setIsActive(false);
+
+  } catch (error) {
+    console.error('Register Error:', error);
+
+    toast.error(
+      error.response?.data?.message || 'Registration failed'
+    );
+  }
+};
 
   return (
     <div className="papa">
@@ -88,8 +115,8 @@ const AuthForm = () => {
               <i className="bx bxs-lock-alt"></i>
             </div>
 
-            <button type="submit" className="butn" disabled={submitting}>
-              {submitting ? 'Logging in…' : 'Login'}
+            <button type="submit" className="butn">
+              Login
             </button>
           </form>
         </div>
@@ -132,8 +159,8 @@ const AuthForm = () => {
               <i className="bx bxs-lock-alt"></i>
             </div>
 
-            <button type="submit" className="butn" disabled={submitting}>
-              {submitting ? 'Registering…' : 'Register'}
+            <button type="submit" className="butn">
+              Register
             </button>
           </form>
         </div>
