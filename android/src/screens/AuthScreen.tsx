@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { getText, LANGUAGE_OPTIONS, AppLanguage } from '../utils/language';
 
 type AuthMode = 'login' | 'register';
 
@@ -22,7 +23,7 @@ type AuthScreenProps = {
 };
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) => {
-  const { login, register, isLoading } = useAuth();
+  const { login, register, isLoading, language, setLanguage } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -34,14 +35,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) =>
     try {
       setError('');
 
-      // Validation
       if (!email || !password) {
-        setError('Please fill in all fields');
+        setError(getText(language, 'pleaseFill'));
         return;
       }
 
       if (mode === 'register' && !fullName) {
-        setError('Please enter your full name');
+        setError(getText(language, 'fullNameRequired'));
         return;
       }
 
@@ -68,11 +68,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) =>
       <View style={styles.topBar}>
         <Text style={styles.brand}>🌱 KrishiScan</Text>
         <View style={styles.navRow}>
-          <Text style={styles.navItem}>Home</Text>
-          <Text style={styles.navItem}>Scan</Text>
-          <Text style={styles.navItem}>Pricing</Text>
+          <Text style={styles.navItem}>{getText(language, 'home')}</Text>
+          <Text style={styles.navItem}>{getText(language, 'scan')}</Text>
+          <Text style={styles.navItem}>{getText(language, 'pricing')}</Text>
           <Pressable style={styles.loginButton} onPress={() => setMode('login')}>
-            <Text style={styles.loginText}>Login</Text>
+            <Text style={styles.loginText}>{getText(language, 'login')}</Text>
           </Pressable>
         </View>
       </View>
@@ -91,35 +91,50 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) =>
               <Ionicons name="leaf" size={30} color="#ffffff" />
             </View>
 
-            <Text style={styles.heading}>{isRegister ? 'Create Account' : 'Welcome Back'}</Text>
+            <Text style={styles.heading}>{isRegister ? getText(language, 'createAccount') : getText(language, 'welcomeBack')}</Text>
             <Text style={styles.subheading}>
-              {isRegister
-                ? 'Join KrishiScan to detect crop health faster.'
-                : 'Login to access your dashboard'}
+              {isRegister ? getText(language, 'createAccountSubtitle') : getText(language, 'loginSubtitle')}
             </Text>
+
+            <View style={styles.languageBox}>
+              <Text style={styles.label}>{getText(language, 'selectLanguage')}</Text>
+              <View style={styles.languageRow}>
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <Pressable
+                    key={option.code}
+                    style={[styles.languageChip, language === option.code && styles.languageChipActive]}
+                    onPress={() => setLanguage(option.code)}
+                  >
+                    <Text style={[styles.languageChipText, language === option.code && styles.languageChipTextActive]}>
+                      {option.native}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
 
             <View style={styles.switcher}>
               <Pressable
                 style={[styles.segmentButton, !isRegister && styles.segmentButtonActive]}
                 onPress={() => setMode('login')}
               >
-                <Text style={[styles.segmentText, !isRegister && styles.segmentTextActive]}>Login</Text>
+                <Text style={[styles.segmentText, !isRegister && styles.segmentTextActive]}>{getText(language, 'login')}</Text>
               </Pressable>
               <Pressable
                 style={[styles.segmentButton, isRegister && styles.segmentButtonActive]}
                 onPress={() => setMode('register')}
               >
-                <Text style={[styles.segmentText, isRegister && styles.segmentTextActive]}>Register</Text>
+                <Text style={[styles.segmentText, isRegister && styles.segmentTextActive]}>{getText(language, 'register')}</Text>
               </Pressable>
             </View>
 
             {isRegister && (
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Full Name</Text>
+                <Text style={styles.label}>{getText(language, 'fullName')}</Text>
                 <TextInput
                   value={fullName}
                   onChangeText={setFullName}
-                  placeholder="Enter your full name"
+                  placeholder={getText(language, 'fullName')}
                   placeholderTextColor="#94A3B8"
                   style={styles.input}
                   autoCapitalize="words"
@@ -128,7 +143,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) =>
             )}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
+              <Text style={styles.label}>{getText(language, 'email')}</Text>
               <TextInput
                 value={email}
                 onChangeText={setEmail}
@@ -141,7 +156,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) =>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>{getText(language, 'password')}</Text>
               <View style={styles.passwordInputWrap}>
                 <TextInput
                   value={password}
@@ -165,7 +180,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) =>
               {isLoading ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text style={styles.primaryButtonText}>{isRegister ? 'Register' : 'Login'}</Text>
+                <Text style={styles.primaryButtonText}>{isRegister ? getText(language, 'register') : getText(language, 'login')}</Text>
               )}
             </Pressable>
 
@@ -173,15 +188,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) =>
 
             <View style={styles.orRow}>
               <View style={styles.divider} />
-              <Text style={styles.orText}>or</Text>
+              <Text style={styles.orText}>{getText(language, 'or')}</Text>
               <View style={styles.divider} />
             </View>
 
-            <Pressable style={styles.secondaryButton} onPress={() => Alert.alert('Guest', 'Continue as guest')}>
-              <Text style={styles.secondaryButtonText}>Continue as Guest</Text>
+            <Pressable style={styles.secondaryButton} onPress={() => Alert.alert('Guest', getText(language, 'continueGuest'))}>
+              <Text style={styles.secondaryButtonText}>{getText(language, 'continueGuest')}</Text>
             </Pressable>
 
-            <Text style={styles.footerText}>Your data is secure and encrypted</Text>
+            <Text style={styles.footerText}>{getText(language, 'secureData')}</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -230,6 +245,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
   },
+  languageBox: {
+    marginTop: 18,
+    marginBottom: 8,
+  },
+  languageRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+    flexWrap: 'wrap',
+  },
+  languageChip: {
+    backgroundColor: '#eefcf4',
+    borderWidth: 1,
+    borderColor: '#cfead9',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  languageChipActive: {
+    backgroundColor: '#1ea65f',
+    borderColor: '#1ea65f',
+  },
+  languageChipText: {
+    color: '#1f2937',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  languageChipTextActive: {
+    color: '#ffffff',
+  },
   keyboardContainer: {
     flex: 1,
   },
@@ -258,45 +303,37 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#1ea65f',
-    alignItems: 'center',
+    backgroundColor: '#15a85d',
     justifyContent: 'center',
-    alignSelf: 'center',
-    marginBottom: 18,
+    alignItems: 'center',
+    marginBottom: 16,
   },
   heading: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '800',
     color: '#111827',
-    textAlign: 'center',
+    marginBottom: 6,
   },
   subheading: {
-    marginTop: 8,
-    textAlign: 'center',
     color: '#64748B',
-    fontSize: 14,
+    fontSize: 15,
     marginBottom: 18,
   },
   switcher: {
     flexDirection: 'row',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#f1f5f9',
     borderRadius: 12,
     padding: 4,
     marginBottom: 18,
   },
   segmentButton: {
     flex: 1,
+    alignItems: 'center',
     paddingVertical: 10,
     borderRadius: 10,
-    alignItems: 'center',
   },
   segmentButtonActive: {
     backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
   },
   segmentText: {
     color: '#475569',
@@ -304,54 +341,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   segmentTextActive: {
-    color: '#16a34a',
+    color: '#111827',
   },
   inputGroup: {
-    marginBottom: 14,
+    marginBottom: 16,
   },
   label: {
-    fontSize: 13,
+    color: '#1f2937',
     fontWeight: '700',
-    color: '#334155',
     marginBottom: 8,
   },
   input: {
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#d8e0df',
-    backgroundColor: '#ffffff',
+    borderColor: '#dfe7ee',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 15,
     color: '#111827',
   },
   passwordInputWrap: {
-    borderWidth: 1,
-    borderColor: '#d8e0df',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 0,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#dfe7ee',
+    borderRadius: 12,
+    paddingHorizontal: 14,
   },
   passwordInput: {
     flex: 1,
-    paddingVertical: 12,
-    fontSize: 15,
     color: '#111827',
+    paddingVertical: 12,
   },
   primaryButton: {
-    backgroundColor: '#1ea65f',
-    paddingVertical: 14,
+    backgroundColor: '#15a85d',
     borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 6,
+    marginTop: 10,
   },
   primaryButtonText: {
     color: '#ffffff',
-    fontWeight: '800',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  errorText: {
+    color: '#dc2626',
+    marginTop: 12,
+    fontSize: 13,
+    fontWeight: '600',
   },
   orRow: {
     flexDirection: 'row',
@@ -370,29 +409,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   secondaryButton: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f0fdf4',
     borderWidth: 1,
-    borderColor: '#dfeae3',
-    paddingVertical: 14,
+    borderColor: '#bbf7d0',
     borderRadius: 12,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   secondaryButtonText: {
-    color: '#1f2937',
+    color: '#166534',
     fontWeight: '700',
-    fontSize: 15,
   },
   footerText: {
-    marginTop: 18,
     textAlign: 'center',
     color: '#64748B',
+    marginTop: 18,
     fontSize: 12,
   },
-  errorText: {
-    marginTop: 12,
-    textAlign: 'center',
-    color: '#dc2626',
-    fontSize: 13,
-    fontWeight: '600',
-  },
 });
+
+export default AuthScreen;

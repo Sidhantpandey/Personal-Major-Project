@@ -49,8 +49,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/predict', predictRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/predict', predictRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

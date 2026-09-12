@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAPI, tokenAPI } from '../utils/api';
+import { AppLanguage } from '../utils/language';
 
 export interface User {
   id: string;
@@ -12,6 +14,8 @@ export interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  language: AppLanguage;
+  setLanguage: (language: AppLanguage) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -24,17 +28,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [language, setLanguageState] = useState<AppLanguage>('en');
 
-  // Check if user is authenticated on app start
+  const setLanguage = useCallback(async (nextLanguage: AppLanguage) => {
+    setLanguageState(nextLanguage);
+    await AsyncStorage.setItem('appLanguage', nextLanguage);
+  }, []);
+
   const checkAuth = useCallback(async () => {
     try {
       setIsLoading(true);
+      const storedLanguage = await AsyncStorage.getItem('appLanguage');
+      if (storedLanguage === 'hi' || storedLanguage === 'en') {
+        setLanguageState(storedLanguage as AppLanguage);
+      }
+
       const storedToken = await tokenAPI.getToken();
       if (storedToken) {
         setToken(storedToken);
         try {
           const userResp = await authAPI.getCurrentUser();
-          // backend may return data or user directly
           const userData = userResp?.data || userResp;
           setUser(userData?.user || userData);
         } catch (err) {
@@ -53,7 +66,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Initialize auth on mount
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
@@ -130,6 +142,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     token,
     isLoading,
     isAuthenticated: !!token,
+    language,
+    setLanguage,
     login,
     register,
     logout,
