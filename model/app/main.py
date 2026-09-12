@@ -17,7 +17,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.v1 import auth, predict, users
+from app.api.v1 import predict
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -129,6 +129,6 @@ async def health_check(request: Request) -> dict[str, str]:
 
 API_PREFIX = "/api/v1"
 
-app.include_router(auth.router, prefix=API_PREFIX)
-app.include_router(users.router, prefix=API_PREFIX)
+# Auth + user management is handled by the Node.js service.
+# This Python service exposes the ML predict endpoint only.
 app.include_router(predict.router, prefix=API_PREFIX)

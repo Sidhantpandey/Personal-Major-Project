@@ -1,24 +1,23 @@
 import mongoose from 'mongoose';
 import { MONGO_URI } from './env.js';
 
-const connectDB = async () => {
+export const connectDB = async () => {
   if (!MONGO_URI) {
     throw new Error('MONGO_URI is not defined in the environment variables.');
   }
 
-  await mongoose.connect(MONGO_URI);
-  console.log('MongoDB connected successfully.');
+  await mongoose.connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 8000,
+    connectTimeoutMS: 10000,
+    family: 4, // Force IPv4 — avoids ISP IPv6 DNS blocking SRV records
+  });
+
+  console.log('✅ MongoDB connected successfully.');
 };
 
 export const testConnection = async () => {
-  try {
-    await mongoose.connection.asPromise();
-    console.log('Database connection has been established successfully.');
-  } catch (error) {
-    console.error('Unable to connect to the database:', error);
-    throw error;
-  }
+  await mongoose.connection.asPromise();
+  console.log('✅ Database connection established.');
 };
 
-export { connectDB };
 export default mongoose;

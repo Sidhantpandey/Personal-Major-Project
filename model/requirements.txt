@@ -1,31 +1,21 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# Plant Disease Detection API – Python Dependencies
-# Install with: pip install -r requirements.txt
+# OmniCrops ML Inference Service — Python Dependencies
+#
+# Auth, DB, and user management → Node.js (MongoDB/Mongoose)
+# This service: image upload → model inference → return prediction JSON
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Web framework
-fastapi==0.115.6
-uvicorn[standard]==0.32.1
+fastapi>=0.115.6
+uvicorn[standard]>=0.32.1
 
-# Database (async)
-sqlalchemy==2.0.36
-asyncpg==0.30.0
-alembic==1.14.0
+# Request validation / settings
+pydantic>=2.11.0
+pydantic-settings>=2.6.1
+python-dotenv>=1.0.1
 
-# Authentication
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-bcrypt==4.0.1
-
-# Configuration
-pydantic==2.10.3
-pydantic-settings==2.6.1
-pydantic[email]==2.10.3
-python-dotenv==1.0.1
-
-# Utilities
-python-multipart==0.0.19   # form data / file uploads
-email-validator==2.2.0     # Pydantic EmailStr validation
+# File uploads (multipart/form-data)
+python-multipart>=0.0.19
 
 # ML inference (OmniCrops SwinV2-B+FPN)
 torch>=2.0.0
@@ -33,7 +23,7 @@ torchvision>=0.15.0
 numpy>=1.24.0
 Pillow>=10.0.0
 
-# Development / testing (optional – pin versions for reproducibility)
-pytest==8.3.4
-pytest-asyncio==0.24.0
-httpx==0.28.1              # async test client for FastAPI
+# Development / testing (optional)
+pytest>=8.3.4
+pytest-asyncio>=0.24.0
+httpx>=0.28.1

@@ -72,6 +72,7 @@ router.post('/upload', authenticate, upload.single('image'), validatePredictionU
         fileBuffer: req.file.buffer,
         mimeType: req.file.mimetype,
         fileName: req.file.originalname || 'crop-image.jpg',
+        cropType,
         tta: Boolean(tta),
       });
 

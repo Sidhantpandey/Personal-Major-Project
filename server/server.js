@@ -1,3 +1,7 @@
+import dns from 'dns';
+// Force Node.js c-ares to use Google DNS — bypasses ISP DNS that blocks SRV records
+dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -71,7 +75,6 @@ app.use((req, res) => {
 // Global error handler (must be last)
 app.use(errorHandler);
 
-// Start server with DB connection
 const startServer = async () => {
   try {
     await connectDB();
@@ -79,10 +82,11 @@ const startServer = async () => {
     await syncUserIndexes();
 
     app.listen(PORT, () => {
-      console.log(`Auth server running on http://localhost:${PORT}`);
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('❌ Failed to start server:', error.message);
+    console.error('   → Check MONGO_URI and whitelist your IP in MongoDB Atlas Network Access.');
     process.exit(1);
   }
 };

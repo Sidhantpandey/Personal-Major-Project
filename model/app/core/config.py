@@ -1,14 +1,17 @@
 """
-Application configuration management using pydantic-settings.
-All sensitive values are loaded from environment variables / .env file.
+Application configuration — ML inference service only.
+
+Auth, user management, and persistence are handled by the Node.js service.
+This service only needs: FastAPI, uvicorn, torch, and CORS config.
 """
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Central settings loaded from .env via pydantic-settings."""
+    """Minimal settings for the ML inference service."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -16,30 +19,21 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # ── Application ─────────────────────────────────────────────────────────
-    APP_NAME: str = "Plant Disease Detection API"
+    # ── Application ──────────────────────────────────────────────────────────
+    APP_NAME: str = "OmniCrops ML Inference API"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
-
-    # ── Database ─────────────────────────────────────────────────────────────
-    DATABASE_URL: str  # e.g. postgresql+asyncpg://user:pass@host/db
-
-    # ── JWT ──────────────────────────────────────────────────────────────────
-    SECRET_KEY: str  # generate with: openssl rand -hex 32
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # ── ML Model ──────────────────────────────────────────────────────────────
     ML_WEIGHTS_DIR: str = "ml-weights/OmniCrops"  # dir with .pth + metadata.json
 
-    # ── CORS (optional) ──────────────────────────────────────────────────────
+    # ── CORS ──────────────────────────────────────────────────────────────────
     ALLOWED_ORIGINS: list[str] = ["*"]
 
 
 @lru_cache
 def get_settings() -> Settings:
-    """Return cached Settings instance (singleton pattern)."""
+    """Return cached Settings instance (singleton)."""
     return Settings()
 
 

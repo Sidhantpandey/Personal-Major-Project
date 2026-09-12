@@ -40,6 +40,10 @@ async def predict_disease(
         ...,
         description="Plant leaf image (JPEG, PNG, WebP, BMP, TIFF — max 10 MB)",
     ),
+    crop_type: str | None = Query(
+        default=None,
+        description="Optional crop type (e.g. 'Tomato', 'Apple', 'Corn') to refine prediction",
+    ),
     tta: bool = Query(
         default=False,
         description=(
@@ -55,6 +59,7 @@ async def predict_disease(
     48 disease/healthy categories across 15 crop types.
 
     **Query params:**
+    - `crop_type` — optional crop type to refine prediction (e.g. Tomato, Corn)
     - `tta=true` — enables 5× Test-Time Augmentation for higher accuracy
       (roughly 5× slower, recommended for critical predictions)
 
@@ -96,9 +101,9 @@ async def predict_disease(
     # ── Run prediction ────────────────────────────────────────────────────
     try:
         if tta:
-            result = ml_service.predict_with_tta(image_bytes)
+            result = ml_service.predict_with_tta(image_bytes, crop_type=crop_type)
         else:
-            result = ml_service.predict(image_bytes)
+            result = ml_service.predict(image_bytes, crop_type=crop_type)
     except Exception as exc:
         logger.exception("Prediction failed: %s", exc)
         raise HTTPException(

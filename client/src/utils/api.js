@@ -49,11 +49,16 @@ export const authAPI = {
 // ML Prediction API
 const ML_API_URL = 'http://127.0.0.1:8000/api/v1/predict';
 
-export const predictDisease = async (file, useTTA = false) => {
+export const predictDisease = async (file, useTTA = false, cropType = null) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const url = `${ML_API_URL}${useTTA ? '?tta=true' : ''}`;
+  const params = new URLSearchParams();
+  if (useTTA) params.append('tta', 'true');
+  if (cropType) params.append('crop_type', cropType);
+
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  const url = `${ML_API_URL}${qs}`;
 
   const response = await fetch(url, {
     method: 'POST',

@@ -246,13 +246,18 @@ export const getHeatmapPoints = async ({ diseaseLabel, bbox, radiusKm, latitude,
   };
 };
 
-export const callMlService = async ({ fileBuffer, mimeType, fileName, tta = false }) => {
+export const callMlService = async ({ fileBuffer, mimeType, fileName, cropType, tta = false }) => {
   const formData = new FormData();
   const blob = new Blob([fileBuffer], { type: mimeType || 'image/jpeg' });
   formData.append('file', blob, fileName || 'crop-image.jpg');
-  formData.append('tta', String(Boolean(tta)));
 
-  const response = await fetch(ML_SERVICE_URL, {
+  const url = new URL(ML_SERVICE_URL);
+  url.searchParams.set('tta', String(Boolean(tta)));
+  if (cropType) {
+    url.searchParams.set('crop_type', String(cropType).trim());
+  }
+
+  const response = await fetch(url.toString(), {
     method: 'POST',
     body: formData,
   });
