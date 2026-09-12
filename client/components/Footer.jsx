@@ -68,8 +68,8 @@ export default function CTAAndFooter() {
 
             {/* Links */}
             {[
-              { title: "Platform", links: ["Home", "Services", "Plant Diseases", "Analytics"] },
-              { title: "Support",  links: ["Documentation", "Contact Us", "FAQ", "Blog"] },
+              { title: "Platform", links: ["Home", "About", "Diagnose", "Heatmap"] },
+              { title: "Support",  links: ["How it works", "Diagnosis", "Field heatmap"] },
               { title: "Tech Stack", links: ["React.js", "Flask/FastAPI", "MongoDB", "TensorFlow"] },
             ].map(({ title, links }) => (
               <div key={title}>

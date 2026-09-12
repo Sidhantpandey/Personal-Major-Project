@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const navLinks = [
   { name: "Home", path: "/home" },
   { name: "About", path: "/about" },
-  { name: "Services", path: "/services" },
-  { name: "Plant Diseases", path: "/plant-diseases" },
-  { name: "Blog", path: "/blog" },
-  { name: "Contact", path: "/contact" },
+  { name: "Diagnose", path: "/analysis" },
+  { name: "History", path: "/history" },
+  { name: "Heatmap", path: "/heatmap" },
 ];
 
 const INDIAN_LANGUAGES = [
@@ -40,6 +39,7 @@ function changeLanguage(langCode) {
 
 function LanguageSwitcher() {
   const [open, setOpen] = useState(false);
+  const [isChangingLanguage, setIsChangingLanguage] = useState(false);
   const [active, setActive] = useState(() => {
     const cookie = document.cookie.split("; ").find(c => c.startsWith("googtrans="));
     if (cookie) {
@@ -58,81 +58,144 @@ function LanguageSwitcher() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const applyLanguage = (langCode) => {
+    if (langCode === "en") {
+      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + window.location.hostname;
+      return;
+    }
+
+    document.cookie = `googtrans=/en/${langCode}; path=/`;
+    document.cookie = `googtrans=/en/${langCode}; path=/; domain=${window.location.hostname}`;
+  };
+
   const handleSelect = (lang) => {
+    if (lang.code === active.code) {
+      setOpen(false);
+      return;
+    }
+
     setActive(lang);
     setOpen(false);
-    changeLanguage(lang.code);
+    setIsChangingLanguage(true);
+    document.body.style.overflow = "hidden";
+
+    setTimeout(() => {
+      applyLanguage(lang.code);
+      window.location.reload();
+    }, 450);
   };
 
   return (
-    <div ref={ref} style={{ position: "relative" }}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          display: "flex", alignItems: "center", gap: 6,
-          background: "transparent",
-          border: "1.5px solid #a8d5a0",
-          borderRadius: 8, padding: "7px 12px",
-          cursor: "pointer", fontSize: 13, fontWeight: 500,
-          color: "#2d5a27", fontFamily: "'DM Sans', sans-serif",
-          transition: "all 0.2s",
-        }}
-        onMouseEnter={e => e.currentTarget.style.background = "#e8f5e3"}
-        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-      >
-        🌐 {active.native !== "English" ? active.native : active.name}
-        <span style={{ fontSize: 10, marginLeft: 2 }}>▾</span>
-      </button>
-
-      {open && (
+    <>
+      {isChangingLanguage && (
         <div style={{
-          position: "absolute", top: "calc(100% + 8px)", right: 0,
-          background: "rgba(240,247,240,0.98)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid #d4ead0",
-          borderRadius: 12, padding: 8, zIndex: 200,
-          width: 270,
-          boxShadow: "0 8px 32px rgba(27,74,23,0.12)",
-          display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2,
+          position: "fixed",
+          inset: 0,
+          background: "rgba(13, 31, 13, 0.35)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 400,
         }}>
           <div style={{
-            gridColumn: "1 / -1", fontSize: 10, color: "#5a9e4f",
-            padding: "2px 8px 6px", letterSpacing: "0.08em",
-            fontFamily: "'DM Sans', sans-serif", textTransform: "uppercase",
+            background: "rgba(255,255,255,0.96)",
+            border: "1px solid #d4ead0",
+            borderRadius: 18,
+            padding: "18px 22px",
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            boxShadow: "0 18px 42px rgba(27,74,23,0.18)",
+            minWidth: 220,
           }}>
-            Select Language
+            <div style={{
+              width: 20,
+              height: 20,
+              borderRadius: "50%",
+              border: "3px solid #d4ead0",
+              borderTopColor: "#3a7d32",
+              animation: "miniSpin 0.8s linear infinite",
+            }} />
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#1b4a17", fontFamily: "'DM Sans', sans-serif" }}>Changing language</div>
+              <div style={{ fontSize: 12, color: "#5a9e4f", fontFamily: "'DM Sans', sans-serif" }}>Please wait...</div>
+            </div>
           </div>
-          {INDIAN_LANGUAGES.map((lang) => (
-            <button
-              key={lang.code}
-              onClick={() => handleSelect(lang)}
-              style={{
-                textAlign: "left",
-                background: active.code === lang.code ? "#d4ead0" : "transparent",
-                border: "none", borderRadius: 8,
-                padding: "8px 10px", cursor: "pointer",
-                display: "flex", flexDirection: "column", gap: 1,
-                transition: "background 0.15s",
-              }}
-              onMouseEnter={e => { if (active.code !== lang.code) e.currentTarget.style.background = "#e8f5e3"; }}
-              onMouseLeave={e => { if (active.code !== lang.code) e.currentTarget.style.background = "transparent"; }}
-            >
-              <span style={{ fontSize: 13, fontWeight: 500, color: active.code === lang.code ? "#1b4a17" : "#2d5a27", fontFamily: "'DM Sans', sans-serif" }}>
-                {lang.name}
-              </span>
-              <span style={{ fontSize: 12, color: "#5a9e4f" }}>{lang.native}</span>
-            </button>
-          ))}
         </div>
       )}
-    </div>
+
+      <div ref={ref} style={{ position: "relative" }}>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: "transparent",
+            border: "1.5px solid #a8d5a0",
+            borderRadius: 8, padding: "7px 12px",
+            cursor: "pointer", fontSize: 13, fontWeight: 500,
+            color: "#2d5a27", fontFamily: "'DM Sans', sans-serif",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = "#e8f5e3"}
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+        >
+          🌐 {active.native !== "English" ? active.native : active.name}
+          <span style={{ fontSize: 10, marginLeft: 2 }}>▾</span>
+        </button>
+
+        {open && (
+          <div style={{
+            position: "absolute", top: "calc(100% + 8px)", right: 0,
+            background: "rgba(240,247,240,0.98)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid #d4ead0",
+            borderRadius: 12, padding: 8, zIndex: 200,
+            width: 270,
+            boxShadow: "0 8px 32px rgba(27,74,23,0.12)",
+            display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2,
+          }}>
+            <div style={{
+              gridColumn: "1 / -1", fontSize: 10, color: "#5a9e4f",
+              padding: "2px 8px 6px", letterSpacing: "0.08em",
+              fontFamily: "'DM Sans', sans-serif", textTransform: "uppercase",
+            }}>
+              Select Language
+            </div>
+            {INDIAN_LANGUAGES.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => handleSelect(lang)}
+                style={{
+                  textAlign: "left",
+                  background: active.code === lang.code ? "#d4ead0" : "transparent",
+                  border: "none", borderRadius: 8,
+                  padding: "8px 10px", cursor: "pointer",
+                  display: "flex", flexDirection: "column", gap: 1,
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={e => { if (active.code !== lang.code) e.currentTarget.style.background = "#e8f5e3"; }}
+                onMouseLeave={e => { if (active.code !== lang.code) e.currentTarget.style.background = "transparent"; }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 500, color: active.code === lang.code ? "#1b4a17" : "#2d5a27", fontFamily: "'DM Sans', sans-serif" }}>
+                  {lang.name}
+                </span>
+                <span style={{ fontSize: 12, color: "#5a9e4f" }}>{lang.native}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [activeNav, setActiveNav] = useState("Home");
   const navigate = useNavigate();
+  const location = useLocation();
+  const activeNav = navLinks.find((link) => location.pathname === link.path)?.name || "";
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -189,11 +252,12 @@ export default function Navbar() {
         .goog-te-banner-frame,
         .skiptranslate { display: none !important; }
         body { top: 0 !important; }
+        @keyframes miniSpin { to { transform: rotate(360deg); } }
       `}</style>
       <div id="google_translate_element" style={{ display: "none" }} />
 
       <nav style={{
-        position: "sticky", top: 0, zIndex: 100,
+        position: "sticky", top: 0, zIndex: 5000,
         background: scrolled ? "rgba(240,247,240,0.95)" : "rgba(240,247,240,0.8)",
         backdropFilter: "blur(12px)",
         borderBottom: scrolled ? "1px solid #d4ead0" : "1px solid transparent",
@@ -204,7 +268,7 @@ export default function Navbar() {
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 
           {/* Logo */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => navigate("/home")}>
             <div style={{ width: 38, height: 38, background: "linear-gradient(135deg, #3a7d32, #6acd5a)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <span style={{ fontSize: 20 }}>🌿</span>
             </div>
@@ -220,7 +284,7 @@ export default function Navbar() {
               <span
                 key={link.name}
                 className={`nav-link ${activeNav === link.name ? "active" : ""}`}
-                onClick={() => { setActiveNav(link.name); navigate(link.path); }}
+                onClick={() => navigate(link.path)}
               >
                 {link.name}
               </span>
@@ -230,10 +294,8 @@ export default function Navbar() {
           {/* Right Actions */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <LanguageSwitcher />
-            <span style={{ fontSize: 20, cursor: "pointer", color: "#3a7d32" }}>🔍</span>
-            <span style={{ fontSize: 20, cursor: "pointer", color: "#3a7d32" }}>👤</span>
             <button className="nav-demo-btn" onClick={() => navigate("/analysis")}>
-              Get A Demo
+              Diagnose Crop
             </button>
           </div>
 

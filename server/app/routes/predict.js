@@ -99,7 +99,7 @@ router.post('/upload', authenticate, upload.single('image'), validatePredictionU
 // GET /api/predict/history?limit=10 - Get user's prediction history
 router.get('/history', authenticate, async (req, res, next) => {
   try {
-    const { limit = 10 } = req.query;
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
     const userId = req.user._id;
     const history = await getUserHistory(userId, limit);
 

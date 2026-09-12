@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 
 import { PORT } from './app/config/env.js';
 import { connectDB, testConnection } from './app/config/database.js';
+import { syncUserIndexes } from './app/models/user.js';
 import authRoutes from './app/routes/auth.js';
 import predictRoutes from './app/routes/predict.js';
 import { errorHandler } from './app/middlewares/errorHandler.js';
@@ -49,8 +50,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/predict', predictRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/predict', predictRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -75,6 +76,7 @@ const startServer = async () => {
   try {
     await connectDB();
     await testConnection();
+    await syncUserIndexes();
 
     app.listen(PORT, () => {
       console.log(`Auth server running on http://localhost:${PORT}`);

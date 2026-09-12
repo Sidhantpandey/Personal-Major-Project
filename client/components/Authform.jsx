@@ -1,127 +1,144 @@
-import axios from 'axios';
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import api from '../src/api/axios';
 import './Authform.css';
 
 const AuthForm = () => {
   const [isActive, setIsActive] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
   const [fullname, setFullname] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
 
   const navigate = useNavigate();
 
-const handleLogin = async (e) => {
-  e.preventDefault();
+  const handlePhoneChange = (value, setter) => {
+    setter(value.replace(/\D/g, '').slice(0, 10));
+  };
 
-  try {
-    const response = await axios.post(
-      'http://localhost:3000/api/auth/login',
-      {
-        email,
-        password
-      }
-    );
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
 
-    console.log('Login Response:', response.data);
+    if (phone.length !== 10) {
+      toast.error('Enter a 10-digit phone number');
+      return;
+    }
 
-    // JWT token save
-    localStorage.setItem('token', response.data.data.token);
+    try {
+      await api.post('/api/auth/send-otp', { phone });
+      toast.success('OTP sent. Use 123456 for demo.');
+      setOtpStep(true);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not send OTP');
+    }
+  };
 
-    // User data save (optional but useful)
-    localStorage.setItem(
-      'user',
-      JSON.stringify(response.data.data.user)
-    );
+  const handleLogin = async (e) => {
+    e.preventDefault();
 
-    toast.success('Login successful');
+    try {
+      const response = await api.post('/api/auth/login', { phone, otp });
 
-    setEmail('');
-    setPassword('');
+      localStorage.setItem('token', response.data.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.data.user));
 
-    navigate('/home');
+      toast.success('Login successful');
 
-  } catch (error) {
-    console.error('Login Error:', error);
+      setPhone('');
+      setOtp('');
+      setOtpStep(false);
 
-    toast.error(
-      error.response?.data?.message || 'Login failed'
-    );
-  }
-};
+      navigate('/home');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Login failed');
+    }
+  };
 
-const handleRegister = async (e) => {
-  e.preventDefault();
+  const handleRegister = async (e) => {
+    e.preventDefault();
 
-  try {
-    const response = await axios.post(
-      'http://localhost:3000/api/auth/register',
-      {
+    if (phone.length !== 10) {
+      toast.error('Enter a 10-digit phone number');
+      return;
+    }
+
+    try {
+      await api.post('/api/auth/register', {
         name: fullname,
-        email,
-        password
-      }
-    );
+        phone,
+      });
 
-    console.log('Register Response:', response.data);
+      toast.success('Registration successful. Login with OTP 123456.');
 
-    toast.success('Registration successful');
-
-    setFullname('');
-    setEmail('');
-    setPassword('');
-
-    // Login panel par wapas
-    setIsActive(false);
-
-  } catch (error) {
-    console.error('Register Error:', error);
-
-    toast.error(
-      error.response?.data?.message || 'Registration failed'
-    );
-  }
-};
+      setFullname('');
+      setPhone('');
+      setOtp('');
+      setOtpStep(false);
+      setIsActive(false);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Registration failed');
+    }
+  };
 
   return (
     <div className="papa">
       <div className={`containe ${isActive ? 'active' : ''}`}>
 
-        {/* ================= LOGIN FORM ================= */}
         <div className="for-box logi">
-          <form onSubmit={handleLogin}>
+          <form onSubmit={otpStep ? handleLogin : handleSendOtp}>
             <h1>Login</h1>
 
             <div className="input-box">
               <input
-                type="email"
-                placeholder="Email"
+                type="tel"
+                inputMode="numeric"
+                placeholder="10-digit phone number"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                maxLength={10}
+                value={phone}
+                onChange={(e) => handlePhoneChange(e.target.value, setPhone)}
+                disabled={otpStep}
               />
-              <i className="bx bxs-envelope"></i>
+              <i className="bx bxs-phone"></i>
             </div>
 
-            <div className="input-box">
-              <input
-                type="password"
-                placeholder="Password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <i className="bx bxs-lock-alt"></i>
-            </div>
+            {otpStep && (
+              <div className="input-box">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Enter OTP"
+                  required
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                />
+                <i className="bx bxs-lock-alt"></i>
+              </div>
+            )}
+
+            {otpStep && <p className="otp-hint">Demo OTP: 123456</p>}
 
             <button type="submit" className="butn">
-              Login
+              {otpStep ? 'Verify OTP' : 'Send OTP'}
             </button>
+
+            {otpStep && (
+              <button
+                type="button"
+                className="butn ghost"
+                onClick={() => {
+                  setOtpStep(false);
+                  setOtp('');
+                }}
+              >
+                Change number
+              </button>
+            )}
           </form>
         </div>
 
-        {/* ================= REGISTER FORM ================= */}
         <div className="for-box register">
           <form onSubmit={handleRegister}>
             <h1>Register</h1>
@@ -139,24 +156,15 @@ const handleRegister = async (e) => {
 
             <div className="input-box">
               <input
-                type="email"
-                placeholder="Email"
+                type="tel"
+                inputMode="numeric"
+                placeholder="10-digit phone number"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                maxLength={10}
+                value={phone}
+                onChange={(e) => handlePhoneChange(e.target.value, setPhone)}
               />
-              <i className="bx bxs-envelope"></i>
-            </div>
-
-            <div className="input-box">
-              <input
-                type="password"
-                placeholder="Password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <i className="bx bxs-lock-alt"></i>
+              <i className="bx bxs-phone"></i>
             </div>
 
             <button type="submit" className="butn">
@@ -165,16 +173,18 @@ const handleRegister = async (e) => {
           </form>
         </div>
 
-        {/* ================= TOGGLE PANELS ================= */}
         <div className="toggle-box">
-
           <div className="toggle-panel toggle-left">
             <h1>Hello, Welcome!</h1>
             <p>Don’t have an account?</p>
             <button
               type="button"
               className="butn"
-              onClick={() => setIsActive(true)}
+              onClick={() => {
+                setIsActive(true);
+                setOtpStep(false);
+                setOtp('');
+              }}
             >
               Register
             </button>
@@ -191,7 +201,6 @@ const handleRegister = async (e) => {
               Login
             </button>
           </div>
-
         </div>
 
       </div>

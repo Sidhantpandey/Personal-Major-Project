@@ -31,7 +31,7 @@ export const authAPI = {
     body: JSON.stringify(payload),
   }),
 
-  loginRequest: async (payload) => apiRequest('/login', {
+  sendOtp: async (payload) => apiRequest('/send-otp', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),

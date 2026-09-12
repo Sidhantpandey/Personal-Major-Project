@@ -238,6 +238,23 @@ body {
   background: #2d6128;
 }
 
+.butn.ghost {
+  margin-top: 12px;
+  background: transparent;
+  color: #3a7d32;
+  border: 1px solid #cfe9c9;
+}
+
+.butn.ghost:hover {
+  background: #f0f7f0;
+}
+
+.otp-hint {
+  margin: -8px 0 16px;
+  font-size: 13px;
+  color: #5a9e4f;
+}
+
 
 /* =========================================================
    TOGGLE BOX

@@ -166,7 +166,7 @@ export const updateReportWithPrediction = async (reportId, predictionData) => {
     rawModelResponse: predictionData || {},
   };
 
-  const updated = await DiseaseReport.findByIdAndUpdate(reportId, payload, { new: true }).populate('userId', 'name email');
+  const updated = await DiseaseReport.findByIdAndUpdate(reportId, payload, { new: true }).populate('userId', 'name phone');
 
   return updated;
 };
@@ -186,13 +186,13 @@ export const markReportFailed = async (reportId, errorMessage = 'Prediction fail
 
 export const getReportById = async (reportId, userId) => {
   const query = userId ? { _id: reportId, userId } : { _id: reportId };
-  return DiseaseReport.findOne(query).populate('userId', 'name email');
+  return DiseaseReport.findOne(query).populate('userId', 'name phone');
 };
 
-export const getUserHistory = async (userId, limit = 10) => {
+export const getUserHistory = async (userId, limit = 50) => {
   return DiseaseReport.find({ userId })
     .sort({ createdAt: -1 })
-    .limit(Number(limit) || 10)
+    .limit(Number(limit) || 50)
     .lean();
 };
 

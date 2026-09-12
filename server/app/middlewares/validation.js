@@ -1,27 +1,28 @@
 import { body } from 'express-validator';
 
+const phoneValidator = body('phone')
+  .trim()
+  .matches(/^\d{10}$/)
+  .withMessage('Phone number must be exactly 10 digits');
+
 export const validateRegister = [
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please provide a valid email'),
-  body('password')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long'),
+  phoneValidator,
   body('name')
     .trim()
     .isLength({ min: 2 })
     .withMessage('Name must be at least 2 characters long')
 ];
 
+export const validateSendOtp = [
+  phoneValidator
+];
+
 export const validateLogin = [
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please provide a valid email'),
-  body('password')
-    .notEmpty()
-    .withMessage('Password is required')
+  phoneValidator,
+  body('otp')
+    .trim()
+    .matches(/^\d{6}$/)
+    .withMessage('OTP must be 6 digits')
 ];
 
 export const validatePredictionUpload = [

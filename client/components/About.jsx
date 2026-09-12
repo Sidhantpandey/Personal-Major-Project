@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom";
+
 export default function AboutSection() {
+  const navigate = useNavigate();
   return (
     <>
       <style>{`
@@ -295,7 +298,7 @@ export default function AboutSection() {
               AgriVision bridges the gap between cutting-edge machine learning research and real-world farming. Our platform empowers farmers and agri-professionals to detect crop diseases instantly — just photograph a leaf and our CNN model does the rest. Built for the fields, trusted by thousands.
             </p>
 
-            <button className="about-read-btn">
+            <button className="about-read-btn" onClick={() => navigate("/about")}>
               <div className="btn-arrow">→</div>
               Read More
             </button>

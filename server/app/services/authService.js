@@ -1,41 +1,69 @@
-import bcrypt from 'bcryptjs';
 import User from '../models/user.js';
 import { generateToken } from '../utils/jwt.js';
-import { BCRYPT_ROUNDS } from '../config/env.js';
 
-export const register = async (email, password, name) => {
-  const existingUser = await User.findOne({ email });
+const DEMO_OTP = '123456';
+
+const normalizePhone = (phone) => String(phone || '').replace(/\D/g, '');
+
+export const register = async (phone, name) => {
+  const normalizedPhone = normalizePhone(phone);
+
+  if (!/^\d{10}$/.test(normalizedPhone)) {
+    throw new Error('Phone number must be exactly 10 digits');
+  }
+
+  const existingUser = await User.findOne({ phone: normalizedPhone });
   if (existingUser) {
     throw new Error('User already exists');
   }
 
-  const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
-
   const user = await User.create({
-    email,
-    password: hashedPassword,
+    phone: normalizedPhone,
     name
   });
 
   return user;
 };
 
-export const login = async (email, password) => {
-  const user = await User.findOne({ email });
+export const requestOtp = async (phone) => {
+  const normalizedPhone = normalizePhone(phone);
+
+  if (!/^\d{10}$/.test(normalizedPhone)) {
+    throw new Error('Phone number must be exactly 10 digits');
+  }
+
+  const user = await User.findOne({ phone: normalizedPhone });
+  if (!user) {
+    throw new Error('No account found for this phone number');
+  }
+
+  return {
+    phone: normalizedPhone,
+    message: 'OTP sent successfully'
+  };
+};
+
+export const login = async (phone, otp) => {
+  const normalizedPhone = normalizePhone(phone);
+
+  if (!/^\d{10}$/.test(normalizedPhone)) {
+    throw new Error('Phone number must be exactly 10 digits');
+  }
+
+  const user = await User.findOne({ phone: normalizedPhone });
   if (!user) {
     throw new Error('Invalid credentials');
   }
 
-  const isValidPassword = await bcrypt.compare(password, user.password);
-  if (!isValidPassword) {
-    throw new Error('Invalid credentials');
+  if (String(otp) !== DEMO_OTP) {
+    throw new Error('Invalid OTP');
   }
 
-  const token = generateToken({ id: user._id, email: user.email });
+  const token = generateToken({ id: user._id, phone: user.phone });
 
   return { user: user.toPublicData(), token };
 };
 
-export const logout = (token) => {
+export const logout = () => {
   return { message: 'Logged out successfully' };
 };

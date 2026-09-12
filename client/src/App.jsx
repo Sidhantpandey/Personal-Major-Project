@@ -9,6 +9,9 @@ import CTAAndFooter from '../components/Footer'
 import AboutSection from '../components/About'
 import AuthForm from '../components/Authform'
 import DiagnoseSection from '../components/Analysis'
+import HeatmapPage from '../components/HeatmapPage'
+import AboutPage from '../components/AboutPage'
+import HistoryPage from '../components/HistoryPage'
 
 
 
@@ -35,6 +38,18 @@ const App = () => {
 <Route path='analysis' element={<>
    <Navbar />
   <DiagnoseSection/>
+  </>} />
+  <Route path='heatmap' element={<>
+   <Navbar />
+  <HeatmapPage/>
+  </>} />
+  <Route path='about' element={<>
+   <Navbar />
+  <AboutPage/>
+  </>} />
+  <Route path='history' element={<>
+   <Navbar />
+  <HistoryPage/>
   </>} />
     </Routes></BrowserRouter>
     </div>
