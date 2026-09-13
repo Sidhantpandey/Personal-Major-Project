@@ -33,16 +33,43 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS
-const allowedOrigins = process.env.ALLOWED_ORIGINS
+const configuredOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
-  : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+  : [];
+
+const defaultAllowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:8081',
+  'http://127.0.0.1:8081',
+  'http://localhost:19006',
+  'http://127.0.0.1:19006',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  ...configuredOrigins,
+];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+    // Allow requests with no origin (e.g. mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+
+    if (defaultAllowedOrigins.includes('*') || defaultAllowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    return callback(new Error('Not allowed by CORS'));
+
+    // Allow local development ports and LAN/emulator IPs
+    if (
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('http://127.0.0.1:') ||
+      origin.startsWith('http://10.0.2.2:') ||
+      origin.startsWith('http://192.168.') ||
+      origin.startsWith('http://10.')
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -56,6 +83,8 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/predict', predictRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/predict', predictRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

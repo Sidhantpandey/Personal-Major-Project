@@ -8,17 +8,42 @@ type ResultScreenProps = {
   disease: string;
   confidence: number;
   recommendations?: string[];
+  crop?: string;
+  allProbabilities?: Record<string, number>;
   onBack: () => void;
+};
+
+const parseDiseaseLabel = (label: string = '') => {
+  const parts = label.replace(/___/g, '|').split('|');
+  const crop = (parts[0] || 'Crop').replace(/_/g, ' ');
+  const disease = (parts[1] || '').replace(/_/g, ' ') || 'Healthy';
+  return { crop, disease };
+};
+
+const getSeverityMeta = (label: string = '', confidence: number = 0) => {
+  const lower = label.toLowerCase();
+  if (lower.includes('healthy')) {
+    return { label: 'Healthy', color: '#16a34a', bg: '#ecfdf5', icon: 'checkmark-circle' as const };
+  }
+  if (confidence >= 85) {
+    return { label: 'High Risk', color: '#dc2626', bg: '#fef2f2', icon: 'alert-circle' as const };
+  }
+  if (confidence >= 60) {
+    return { label: 'Moderate Risk', color: '#d97706', bg: '#fffbeb', icon: 'warning' as const };
+  }
+  return { label: 'Low Risk', color: '#2563eb', bg: '#eff6ff', icon: 'information-circle' as const };
 };
 
 export const ResultScreen: React.FC<ResultScreenProps> = ({
   disease,
   confidence,
   recommendations = [
-    'Remove infected leaves and isolate affected plants',
-    'Apply a suitable fungicide as per crop stage',
-    'Maintain proper ventilation and avoid overwatering',
+    'Inspect surrounding plants for early infection spots.',
+    'Isolate or prune heavily damaged foliage to prevent spread.',
+    'Apply crop-specific organic or chemical treatment as recommended.',
   ],
+  crop,
+  allProbabilities = {},
   onBack,
 }) => {
   const { isAuthenticated, user, language } = useAuth();
@@ -29,16 +54,29 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     }
   }, [isAuthenticated, onBack]);
 
+  const parsed = parseDiseaseLabel(disease);
+  const displayCrop = crop || parsed.crop;
+  const displayDisease = parsed.disease;
+  const severity = getSeverityMeta(disease, confidence);
+
+  // Top 4 probabilities sorted descending
+  const topProbs = Object.entries(allProbabilities)
+    .sort(([, a], [, b]) => Number(b) - Number(a))
+    .slice(0, 4)
+    .map(([cls, pct]) => ({
+      name: cls.replace(/___/g, ' - ').replace(/_/g, ' '),
+      pct: Number(pct),
+    }));
+
   return (
     <View style={styles.screen}>
       <View style={styles.topBar}>
-        <Text style={styles.brand}>🌱 KrishiScan</Text>
+        <Text style={styles.brand}>🌱 OmniCrops</Text>
         <View style={styles.navRow}>
           <Text style={styles.navItem}>{getText(language, 'home')}</Text>
           <Text style={styles.navItem}>{getText(language, 'scan')}</Text>
-          <Text style={styles.navItem}>{getText(language, 'pricing')}</Text>
           {isAuthenticated && user ? (
-            <Text style={styles.userEmail}>{user.email}</Text>
+            <Text style={styles.userEmail}>{user.name ? `${user.name}` : user.phone}</Text>
           ) : (
             <Pressable style={styles.loginButton} onPress={onBack}>
               <Text style={styles.loginText}>{getText(language, 'login')}</Text>
@@ -49,30 +87,47 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.resultCard}>
-          <View style={styles.iconWrap}>
-            <Ionicons name="checkmark-circle" size={40} color="#1ea65f" />
+          <View style={[styles.badgeWrap, { backgroundColor: severity.bg, borderColor: severity.color }]}>
+            <Ionicons name={severity.icon} size={18} color={severity.color} />
+            <Text style={[styles.badgeText, { color: severity.color }]}>
+              {severity.label.toUpperCase()}
+            </Text>
           </View>
 
-          <Text style={styles.label}>{getText(language, 'diseasePrediction')}</Text>
-          <Text style={styles.disease}>{disease}</Text>
+          <Text style={styles.cropBadge}>{displayCrop.toUpperCase()}</Text>
+          <Text style={styles.disease}>{displayDisease}</Text>
 
           <View style={styles.confidenceRow}>
             <Text style={styles.confidenceLabel}>{getText(language, 'confidence')}</Text>
-            <Text style={styles.confidenceValue}>{confidence}%</Text>
+            <Text style={[styles.confidenceValue, { color: severity.color }]}>{confidence.toFixed(1)}%</Text>
           </View>
 
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${confidence}%` }]} />
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${Math.min(100, Math.max(5, confidence))}%`, backgroundColor: severity.color },
+              ]}
+            />
           </View>
 
-          <View style={styles.summaryBox}>
-            <Text style={styles.summaryTitle}>{getText(language, 'diagnosisSummary')}</Text>
-            <Text style={styles.summaryText}>
-              {language === 'hi'
-                ? 'फसल में प्रारंभिक फंगल क्षति के संकेत दिखाई दे रहे हैं। आगे फैलने से रोकने के लिए तुरंत उपचार शुरू करना चाहिए।'
-                : 'The crop shows signs of early fungal damage. Recommended treatment should begin immediately to prevent further spread.'}
-            </Text>
-          </View>
+          {/* Probability breakdown */}
+          {topProbs.length > 0 && (
+            <View style={styles.probSection}>
+              <Text style={styles.sectionHeading}>Top Model Probabilities</Text>
+              {topProbs.map((item, idx) => (
+                <View key={idx} style={styles.probItem}>
+                  <View style={styles.probHeader}>
+                    <Text style={styles.probName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.probPct}>{item.pct.toFixed(1)}%</Text>
+                  </View>
+                  <View style={styles.miniTrack}>
+                    <View style={[styles.miniFill, { width: `${Math.min(100, Math.max(2, item.pct))}%` }]} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
 
           <View style={styles.tipsBox}>
             <Text style={styles.summaryTitle}>{getText(language, 'recommendedActions')}</Text>
@@ -138,99 +193,150 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   contentContainer: {
-    paddingVertical: 40,
+    paddingVertical: 32,
     paddingHorizontal: 20,
     alignItems: 'center',
   },
   resultCard: {
     width: '100%',
-    maxWidth: 760,
+    maxWidth: 620,
     backgroundColor: '#ffffff',
     borderRadius: 24,
     borderWidth: 1,
     borderColor: '#dfeae3',
-    padding: 30,
+    padding: 26,
     shadowColor: '#000',
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.05,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    elevation: 3,
   },
-  iconWrap: {
+  badgeWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'center',
-    marginBottom: 14,
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 10,
   },
-  label: {
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  cropBadge: {
     textAlign: 'center',
-    color: '#1ea65f',
+    color: '#64748B',
+    fontSize: 13,
     fontWeight: '700',
-    letterSpacing: 1.2,
+    letterSpacing: 1,
+    marginTop: 4,
   },
   disease: {
     textAlign: 'center',
-    fontSize: 40,
+    fontSize: 30,
     fontWeight: '800',
     color: '#111827',
-    marginTop: 10,
+    marginTop: 6,
+    marginBottom: 8,
   },
   confidenceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 22,
+    marginTop: 14,
   },
   confidenceLabel: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#475569',
     fontWeight: '700',
   },
   confidenceValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1ea65f',
   },
   progressTrack: {
-    height: 12,
+    height: 10,
     backgroundColor: '#e5e7eb',
     borderRadius: 999,
     overflow: 'hidden',
-    marginTop: 10,
+    marginTop: 8,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#1ea65f',
     borderRadius: 999,
   },
-  summaryBox: {
+  probSection: {
     backgroundColor: '#f8fafc',
     borderRadius: 16,
-    padding: 16,
-    marginTop: 24,
+    padding: 14,
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  summaryTitle: {
-    fontSize: 16,
-    color: '#111827',
+  sectionHeading: {
+    fontSize: 13,
     fontWeight: '800',
+    color: '#334155',
     marginBottom: 10,
+    letterSpacing: 0.5,
   },
-  summaryText: {
-    color: '#475569',
-    fontSize: 14,
-    lineHeight: 22,
+  probItem: {
+    marginBottom: 8,
+  },
+  probHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  probName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1e293b',
+    flex: 1,
+  },
+  probPct: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f766e',
+    marginLeft: 8,
+  },
+  miniTrack: {
+    height: 6,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  miniFill: {
+    height: '100%',
+    backgroundColor: '#10b981',
+    borderRadius: 4,
   },
   tipsBox: {
     backgroundColor: '#f8fafc',
     borderRadius: 16,
     padding: 16,
-    marginTop: 20,
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  summaryTitle: {
+    fontSize: 15,
+    color: '#111827',
+    fontWeight: '800',
+    marginBottom: 10,
   },
   tipText: {
     color: '#334155',
-    fontSize: 14,
-    lineHeight: 24,
+    fontSize: 13,
+    lineHeight: 22,
+    marginBottom: 4,
   },
   primaryButton: {
-    marginTop: 24,
+    marginTop: 20,
     backgroundColor: '#1ea65f',
     borderRadius: 12,
     paddingVertical: 14,

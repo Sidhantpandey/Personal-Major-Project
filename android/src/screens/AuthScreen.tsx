@@ -23,41 +23,84 @@ type AuthScreenProps = {
 };
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) => {
-  const { login, register, isLoading, language, setLanguage } = useAuth();
+  const { login, register, sendOtp, isLoading, language, setLanguage } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpStep, setOtpStep] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async () => {
+  const handlePhoneChange = (val: string) => {
+    setPhone(val.replace(/\D/g, '').slice(0, 10));
+  };
+
+  const handleOtpChange = (val: string) => {
+    setOtp(val.replace(/\D/g, '').slice(0, 6));
+  };
+
+  const handleSendOtp = async () => {
     try {
       setError('');
-
-      if (!email || !password) {
-        setError(getText(language, 'pleaseFill'));
+      if (phone.length !== 10) {
+        setError(getText(language, 'enterValidPhone'));
         return;
       }
 
-      if (mode === 'register' && !fullName) {
-        setError(getText(language, 'fullNameRequired'));
+      await sendOtp(phone);
+      setOtpStep(true);
+      Alert.alert('OTP Sent', getText(language, 'otpSent'));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to send OTP';
+      setError(message);
+      Alert.alert('Error', message);
+    }
+  };
+
+  const handleLogin = async () => {
+    try {
+      setError('');
+      if (phone.length !== 10) {
+        setError(getText(language, 'enterValidPhone'));
+        return;
+      }
+      if (otp.length !== 6) {
+        setError(getText(language, 'enterValidOtp'));
         return;
       }
 
-      if (mode === 'login') {
-        await login(email, password);
-      } else {
-        await register(email, password, fullName);
-      }
-
+      await login(phone, otp);
       if (onContinue) {
         onContinue();
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Authentication failed';
+      const message = err instanceof Error ? err.message : 'Login failed';
       setError(message);
-      Alert.alert('Error', message);
+      Alert.alert('Login Failed', message);
+    }
+  };
+
+  const handleRegister = async () => {
+    try {
+      setError('');
+      if (!fullName.trim()) {
+        setError(getText(language, 'fullNameRequired'));
+        return;
+      }
+      if (phone.length !== 10) {
+        setError(getText(language, 'enterValidPhone'));
+        return;
+      }
+
+      await register(phone, fullName.trim());
+      await sendOtp(phone);
+      setOtpStep(true);
+      setMode('login');
+      Alert.alert('Registration Successful', getText(language, 'otpSent'));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Registration failed';
+      setError(message);
+      Alert.alert('Registration Failed', message);
     }
   };
 
@@ -66,12 +109,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) =>
   return (
     <View style={styles.screen}>
       <View style={styles.topBar}>
-        <Text style={styles.brand}>🌱 KrishiScan</Text>
+        <Text style={styles.brand}>🌱 OmniCrops</Text>
         <View style={styles.navRow}>
           <Text style={styles.navItem}>{getText(language, 'home')}</Text>
           <Text style={styles.navItem}>{getText(language, 'scan')}</Text>
-          <Text style={styles.navItem}>{getText(language, 'pricing')}</Text>
-          <Pressable style={styles.loginButton} onPress={() => setMode('login')}>
+          <Pressable
+            style={styles.loginButton}
+            onPress={() => {
+              setMode('login');
+              setOtpStep(false);
+              setError('');
+            }}
+          >
             <Text style={styles.loginText}>{getText(language, 'login')}</Text>
           </Pressable>
         </View>
@@ -91,7 +140,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) =>
               <Ionicons name="leaf" size={30} color="#ffffff" />
             </View>
 
-            <Text style={styles.heading}>{isRegister ? getText(language, 'createAccount') : getText(language, 'welcomeBack')}</Text>
+            <Text style={styles.heading}>
+              {isRegister ? getText(language, 'createAccount') : getText(language, 'welcomeBack')}
+            </Text>
             <Text style={styles.subheading}>
               {isRegister ? getText(language, 'createAccountSubtitle') : getText(language, 'loginSubtitle')}
             </Text>
@@ -116,15 +167,27 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) =>
             <View style={styles.switcher}>
               <Pressable
                 style={[styles.segmentButton, !isRegister && styles.segmentButtonActive]}
-                onPress={() => setMode('login')}
+                onPress={() => {
+                  setMode('login');
+                  setOtpStep(false);
+                  setError('');
+                }}
               >
-                <Text style={[styles.segmentText, !isRegister && styles.segmentTextActive]}>{getText(language, 'login')}</Text>
+                <Text style={[styles.segmentText, !isRegister && styles.segmentTextActive]}>
+                  {getText(language, 'login')}
+                </Text>
               </Pressable>
               <Pressable
                 style={[styles.segmentButton, isRegister && styles.segmentButtonActive]}
-                onPress={() => setMode('register')}
+                onPress={() => {
+                  setMode('register');
+                  setOtpStep(false);
+                  setError('');
+                }}
               >
-                <Text style={[styles.segmentText, isRegister && styles.segmentTextActive]}>{getText(language, 'register')}</Text>
+                <Text style={[styles.segmentText, isRegister && styles.segmentTextActive]}>
+                  {getText(language, 'register')}
+                </Text>
               </Pressable>
             </View>
 
@@ -143,58 +206,75 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onContinue }) =>
             )}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{getText(language, 'email')}</Text>
+              <Text style={styles.label}>{getText(language, 'phone')}</Text>
               <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="your@email.com"
+                value={phone}
+                onChangeText={handlePhoneChange}
+                placeholder={getText(language, 'enterPhone')}
                 placeholderTextColor="#94A3B8"
-                keyboardType="email-address"
-                autoCapitalize="none"
+                keyboardType="phone-pad"
+                maxLength={10}
                 style={styles.input}
+                editable={!otpStep}
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{getText(language, 'password')}</Text>
-              <View style={styles.passwordInputWrap}>
+            {otpStep && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>{getText(language, 'otp')}</Text>
                 <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="••••••••"
+                  value={otp}
+                  onChangeText={handleOtpChange}
+                  placeholder="123456"
                   placeholderTextColor="#94A3B8"
-                  secureTextEntry={!showPassword}
-                  style={styles.passwordInput}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  style={styles.input}
                 />
-                <Pressable onPress={() => setShowPassword((value) => !value)}>
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
-                    color="#64748B"
-                  />
+                <Text style={styles.demoHintText}>💡 {getText(language, 'demoOtpHint')}</Text>
+              </View>
+            )}
+
+            {otpStep ? (
+              <View style={{ gap: 10, marginTop: 8 }}>
+                <Pressable
+                  style={styles.primaryButton}
+                  onPress={handleLogin}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>{getText(language, 'verifyLogin')}</Text>
+                  )}
+                </Pressable>
+                <Pressable
+                  style={styles.changePhoneButton}
+                  onPress={() => {
+                    setOtpStep(false);
+                    setOtp('');
+                  }}
+                >
+                  <Text style={styles.changePhoneText}>{getText(language, 'changePhone')}</Text>
                 </Pressable>
               </View>
-            </View>
-
-            <Pressable style={styles.primaryButton} onPress={handleSubmit} disabled={isLoading}>
-              {isLoading ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>{isRegister ? getText(language, 'register') : getText(language, 'login')}</Text>
-              )}
-            </Pressable>
+            ) : (
+              <Pressable
+                style={styles.primaryButton}
+                onPress={isRegister ? handleRegister : handleSendOtp}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>
+                    {isRegister ? getText(language, 'registerWithOtp') : getText(language, 'sendOtp')}
+                  </Text>
+                )}
+              </Pressable>
+            )}
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-            <View style={styles.orRow}>
-              <View style={styles.divider} />
-              <Text style={styles.orText}>{getText(language, 'or')}</Text>
-              <View style={styles.divider} />
-            </View>
-
-            <Pressable style={styles.secondaryButton} onPress={() => Alert.alert('Guest', getText(language, 'continueGuest'))}>
-              <Text style={styles.secondaryButtonText}>{getText(language, 'continueGuest')}</Text>
-            </Pressable>
 
             <Text style={styles.footerText}>{getText(language, 'secureData')}</Text>
           </View>
@@ -425,6 +505,22 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 18,
     fontSize: 12,
+  },
+  demoHintText: {
+    fontSize: 12,
+    color: '#15a85d',
+    fontWeight: '600',
+    marginTop: 6,
+  },
+  changePhoneButton: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  changePhoneText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
 

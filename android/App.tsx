@@ -57,9 +57,11 @@ const TransitionScreen: React.FC<TransitionScreenProps> = ({ children, screenKey
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const [screen, setScreen] = useState<AppScreen>('landing');
-  const [resultDisease, setResultDisease] = useState('Leaf Spot');
-  const [resultConfidence, setResultConfidence] = useState(92);
+  const [resultDisease, setResultDisease] = useState('Healthy');
+  const [resultConfidence, setResultConfidence] = useState(90);
   const [resultRecommendations, setResultRecommendations] = useState<string[]>([]);
+  const [resultCrop, setResultCrop] = useState('Tomato');
+  const [resultProbabilities, setResultProbabilities] = useState<Record<string, number>>({});
 
   // Update screen when auth state changes
   useEffect(() => {
@@ -68,10 +70,18 @@ const AppContent: React.FC = () => {
     }
   }, [isAuthenticated, screen]);
 
-  const handleScan = (disease: string, confidence: number, recommendations?: string[]) => {
+  const handleScan = (
+    disease: string,
+    confidence: number,
+    recommendations?: string[],
+    crop?: string,
+    allProbabilities?: Record<string, number>
+  ) => {
     setResultDisease(disease);
     setResultConfidence(confidence);
     setResultRecommendations(recommendations || []);
+    setResultCrop(crop || '');
+    setResultProbabilities(allProbabilities || {});
     setScreen('result');
   };
 
@@ -114,6 +124,8 @@ const AppContent: React.FC = () => {
             disease={resultDisease}
             confidence={resultConfidence}
             recommendations={resultRecommendations}
+            crop={resultCrop}
+            allProbabilities={resultProbabilities}
             onBack={() => setScreen('dashboard')}
           />
         );

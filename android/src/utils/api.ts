@@ -1,7 +1,15 @@
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Default to Android emulator host. Override with `EXPO_PUBLIC_API_BASE_URL` env var for device or production.
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
+// In Android Emulator, localhost is 10.0.2.2. On Web/iOS it is localhost.
+const getDefaultApiUrl = () => {
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:3000/api';
+  }
+  return 'http://localhost:3000/api';
+};
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || getDefaultApiUrl();
 
 const normalizeLanguageCode = (language: string = 'en'): string => {
   const normalized = String(language).trim().toLowerCase();
@@ -97,28 +105,34 @@ const apiRequest = async (
   }
 };
 
-// Auth APIs
+// Auth APIs (aligned with website Phone + OTP model)
 export const authAPI = {
-  register: async (email: string, password: string, name: string) => {
-    const response = await apiRequest('/auth/register', {
+  sendOtp: async (phone: string) => {
+    return apiRequest('/auth/send-otp', {
       method: 'POST',
-      body: { email, password, name },
+      body: { phone },
       requiresAuth: false,
     });
-    if (response.data?.token) {
-      await setToken(response.data.token);
-    }
+  },
+
+  register: async (phone: string, name: string) => {
+    const response = await apiRequest('/auth/register', {
+      method: 'POST',
+      body: { phone, name },
+      requiresAuth: false,
+    });
     return response;
   },
 
-  login: async (email: string, password: string) => {
+  login: async (phone: string, otp: string) => {
     const response = await apiRequest('/auth/login', {
       method: 'POST',
-      body: { email, password },
+      body: { phone, otp },
       requiresAuth: false,
     });
-    if (response.data?.token) {
-      await setToken(response.data.token);
+    const token = response.data?.token || response.token;
+    if (token) {
+      await setToken(token);
     }
     return response;
   },
@@ -153,10 +167,20 @@ export const predictionAPI = {
   ) => {
     const formData = new FormData();
 
-    const response = await fetch(imageUri);
-    const blob = await response.blob();
-    formData.append('image', blob, 'photo.jpg');
-    formData.append('cropType', cropType);
+    if (Platform.OS === 'web') {
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      formData.append('image', blob, 'photo.jpg');
+    } else {
+      // React Native mobile upload format
+      formData.append('image', {
+        uri: imageUri,
+        type: 'image/jpeg',
+        name: 'photo.jpg',
+      } as any);
+    }
+
+    formData.append('cropType', cropType.split(' ')[0]);
     formData.append('language', normalizeLanguageCode(language));
 
     if (typeof latitude === 'number' && typeof longitude === 'number') {

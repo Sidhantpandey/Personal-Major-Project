@@ -4,8 +4,9 @@ import { authAPI, tokenAPI } from '../utils/api';
 import { AppLanguage } from '../utils/language';
 
 export interface User {
-  id: string;
-  email: string;
+  id?: string;
+  _id?: string;
+  phone: string;
   name: string;
 }
 
@@ -16,8 +17,9 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   language: AppLanguage;
   setLanguage: (language: AppLanguage) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  sendOtp: (phone: string) => Promise<any>;
+  login: (phone: string, otp: string) => Promise<void>;
+  register: (phone: string, name: string) => Promise<any>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -70,26 +72,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
   }, [checkAuth]);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const sendOtp = useCallback(async (phone: string) => {
+    return authAPI.sendOtp(phone);
+  }, []);
+
+  const login = useCallback(async (phone: string, otp: string) => {
     try {
       setIsLoading(true);
-      const response = await authAPI.login(email, password);
-      const token = response.data?.token || null;
-      if (token) {
-        await tokenAPI.setToken(token);
-        setToken(token);
+      const response = await authAPI.login(phone, otp);
+      const authToken = response.data?.token || response.token || null;
+      if (authToken) {
+        await tokenAPI.setToken(authToken);
+        setToken(authToken);
       }
 
-      const userFromResp = response.data?.user;
+      const userFromResp = response.data?.user || response.user;
       if (userFromResp) {
         setUser(userFromResp);
       } else {
         try {
           const me = await authAPI.getCurrentUser();
           const userData = me?.data || me;
-          setUser(userData?.user || userData || { email, name: '', id: response.data?.userId || '' });
+          setUser(userData?.user || userData || { phone, name: '' });
         } catch (err) {
-          setUser({ email, name: '', id: response.data?.userId || '' });
+          setUser({ phone, name: '' });
         }
       }
     } catch (error) {
@@ -100,22 +106,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const register = useCallback(async (email: string, password: string, name: string) => {
+  const register = useCallback(async (phone: string, name: string) => {
     try {
       setIsLoading(true);
-      const response = await authAPI.register(email, password, name);
-      const token = response.data?.token || null;
-      if (token) {
-        await tokenAPI.setToken(token);
-        setToken(token);
-      }
-
-      const userFromResp = response.data?.user;
-      if (userFromResp) {
-        setUser(userFromResp);
-      } else {
-        setUser({ email, name, id: response.data?.userId || '' });
-      }
+      const response = await authAPI.register(phone, name);
+      return response;
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;
@@ -144,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!token,
     language,
     setLanguage,
+    sendOtp,
     login,
     register,
     logout,

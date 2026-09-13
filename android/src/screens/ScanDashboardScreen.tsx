@@ -15,14 +15,38 @@ import { useAuth } from '../context/AuthContext';
 import { predictionAPI } from '../utils/api';
 import { getText, LANGUAGE_OPTIONS } from '../utils/language';
 
+export const CROP_OPTIONS = [
+  { label: 'Tomato', icon: '🍅', sub: '10 classes' },
+  { label: 'Potato', icon: '🥔', sub: '3 classes' },
+  { label: 'Corn', icon: '🌽', sub: '4 classes' },
+  { label: 'Apple', icon: '🍎', sub: '4 classes' },
+  { label: 'Rice', icon: '🌾', sub: '10 classes' },
+  { label: 'Grape', icon: '🍇', sub: '4 classes' },
+  { label: 'BellPepper', icon: '🌶️', sub: '2 classes' },
+  { label: 'Strawberry', icon: '🍓', sub: '2 classes' },
+  { label: 'Peach', icon: '🍑', sub: '2 classes' },
+  { label: 'Orange', icon: '🍊', sub: '1 class' },
+  { label: 'Cherry', icon: '🍒', sub: '2 classes' },
+  { label: 'Soybean', icon: '🫘', sub: '1 class' },
+  { label: 'Squash', icon: '🎃', sub: '1 class' },
+  { label: 'Blueberry', icon: '🫐', sub: '1 class' },
+  { label: 'Raspberry', icon: '🫐', sub: '1 class' },
+];
+
 type ScanDashboardScreenProps = {
-  onScan: (disease: string, confidence: number, recommendations?: string[]) => void;
+  onScan: (
+    disease: string,
+    confidence: number,
+    recommendations?: string[],
+    crop?: string,
+    allProbabilities?: Record<string, number>
+  ) => void;
   onBack: () => void;
 };
 
 export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan, onBack }) => {
   const { user, isAuthenticated, logout, language, setLanguage } = useAuth();
-  const [selectedCrop, setSelectedCrop] = useState<'Sugarcane' | 'Other Crops'>('Sugarcane');
+  const [selectedCrop, setSelectedCrop] = useState<string>('Tomato');
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,20 +98,21 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
       setIsLoading(true);
       setError('');
 
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setError(getText(language, 'locationRequired'));
-        Alert.alert('Location permission required', getText(language, 'locationRequired'));
-        setIsLoading(false);
-        return;
+      let latitude = 19.076;
+      let longitude = 72.8777;
+
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          latitude = location.coords.latitude;
+          longitude = location.coords.longitude;
+        }
+      } catch (locErr) {
+        console.warn('Could not fetch GPS location, using fallback:', locErr);
       }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      const latitude = location.coords.latitude;
-      const longitude = location.coords.longitude;
 
       const response = await predictionAPI.uploadPhoto(
         imageUri,
@@ -98,13 +123,14 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
       );
 
       const payload = response?.data ?? response;
-      const diseaseLabel = payload?.diseaseLabel || payload?.disease || 'Unknown';
+      const diseaseLabel = payload?.diseaseLabel || payload?.predicted_class || payload?.disease || 'Unknown';
       const confidence = Number(payload?.confidence ?? 0);
       const recommendations = Array.isArray(payload?.recommendations)
         ? payload.recommendations
         : [];
+      const allProbabilities = payload?.all_probabilities || payload?.rawModelResponse?.all_probabilities || {};
 
-      onScan(diseaseLabel, confidence, recommendations);
+      onScan(diseaseLabel, confidence, recommendations, selectedCrop, allProbabilities);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to process scan';
       setError(message);
@@ -126,14 +152,13 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
   return (
     <View style={styles.screen}>
       <View style={styles.topBar}>
-        <Text style={styles.brand}>🌱 KrishiScan</Text>
+        <Text style={styles.brand}>🌱 OmniCrops</Text>
         <View style={styles.navRow}>
           <Text style={styles.navItem}>{getText(language, 'home')}</Text>
           <Text style={styles.navItem}>{getText(language, 'scan')}</Text>
-          <Text style={styles.navItem}>{getText(language, 'pricing')}</Text>
           {isAuthenticated && user ? (
             <>
-              <Text style={styles.userText}>{user.email}</Text>
+              <Text style={styles.userText}>{user.name ? `${user.name}` : user.phone}</Text>
               <Pressable style={styles.logoutButton} onPress={handleLogout}>
                 <Text style={styles.logoutButtonText}>{getText(language, 'logout')}</Text>
               </Pressable>
@@ -161,7 +186,9 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
           <View style={styles.guestBox}>
             <Text style={styles.guestIcon}>◉</Text>
             <View>
-              <Text style={styles.guestText}>{user?.email || getText(language, 'guestBox')}</Text>
+              <Text style={styles.guestText}>
+                {user?.name ? `${user.name} (${user.phone})` : user?.phone || getText(language, 'guestBox')}
+              </Text>
               <Text style={styles.guestMeta}>{getText(language, 'authUser')}</Text>
             </View>
           </View>
@@ -169,31 +196,27 @@ export const ScanDashboardScreen: React.FC<ScanDashboardScreenProps> = ({ onScan
           <View style={styles.grid}>
             <View style={styles.leftPanel}>
               <Text style={styles.label}>{getText(language, 'cropType')}</Text>
-              <View style={styles.optionRow}>
-                <Pressable
-                  style={[
-                    styles.cropCard,
-                    selectedCrop === 'Sugarcane' && styles.cropCardActive,
-                  ]}
-                  onPress={() => setSelectedCrop('Sugarcane')}
-                >
-                  <Text style={styles.cropIcon}>🌾</Text>
-                  <Text style={styles.cropText}>{getText(language, 'sugarcane')}</Text>
-                  <Text style={styles.cropMeta}>12 diseases</Text>
-                </Pressable>
-
-                <Pressable
-                  style={[
-                    styles.cropCard,
-                    selectedCrop === 'Other Crops' && styles.cropCardActive,
-                  ]}
-                  onPress={() => setSelectedCrop('Other Crops')}
-                >
-                  <Text style={styles.cropIcon}>🌽</Text>
-                  <Text style={styles.cropText}>{getText(language, 'otherCrops')}</Text>
-                  <Text style={styles.cropMeta}>15 diseases</Text>
-                </Pressable>
-              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 10, paddingVertical: 4 }}
+                style={{ marginBottom: 18 }}
+              >
+                {CROP_OPTIONS.map((c) => {
+                  const isSelected = selectedCrop === c.label;
+                  return (
+                    <Pressable
+                      key={c.label}
+                      style={[styles.cropCard, isSelected && styles.cropCardActive]}
+                      onPress={() => setSelectedCrop(c.label)}
+                    >
+                      <Text style={styles.cropIcon}>{c.icon}</Text>
+                      <Text style={[styles.cropText, isSelected && { color: '#1ea65f' }]}>{c.label}</Text>
+                      <Text style={styles.cropMeta}>{c.sub}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
 
               <Text style={styles.label}>{getText(language, 'language')}</Text>
               <View style={styles.languageRow}>
@@ -410,12 +433,13 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   cropCard: {
-    flex: 1,
+    minWidth: 95,
     backgroundColor: '#f8fafc',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#dfeae3',
-    padding: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     alignItems: 'center',
   },
   cropCardActive: {

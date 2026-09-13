@@ -11,11 +11,10 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({ onStart, onLogin }
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.contentContainer}>
       <View style={styles.topBar}>
-        <Text style={styles.brand}>🌱 KrishiScan</Text>
+        <Text style={styles.brand}>🌱 OmniCrops</Text>
         <View style={styles.navRow}>
           <Text style={styles.navItem}>Home</Text>
           <Text style={styles.navItem}>Scan</Text>
-          <Text style={styles.navItem}>Pricing</Text>
           <Pressable style={styles.loginButton} onPress={onLogin}>
             <Text style={styles.loginText}>Login</Text>
           </Pressable>
@@ -29,7 +28,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({ onStart, onLogin }
         <View style={styles.heroContent}>
           <View style={styles.badge}>
             <View style={styles.dot} />
-            <Text style={styles.badgeText}>Trusted by 10,000+ Indian Farmers</Text>
+            <Text style={styles.badgeText}>Vision Transformer Crop Disease Detection</Text>
           </View>
 
           <Text style={styles.heroTitle}>
@@ -38,8 +37,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({ onStart, onLogin }
           </Text>
 
           <Text style={styles.heroSubtitle}>
-            Upload a photo of your crop and get instant AI-powered disease detection in Hindi & English.
-            Save your harvest with early diagnosis.
+            Upload a photo of your crop and get instant AI-powered disease detection in Hindi & English across 15 crops and 48 disease classes.
           </Text>
 
           <View style={styles.ctaRow}>
@@ -47,29 +45,25 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({ onStart, onLogin }
               <Text style={styles.primaryButtonText}>Start Free Scan</Text>
               <Ionicons name="arrow-forward" size={18} color="#fff" />
             </Pressable>
-
-            <Pressable style={styles.secondaryButton} onPress={onStart}>
-              <Text style={styles.secondaryButtonText}>View Plans</Text>
-            </Pressable>
           </View>
 
           <View style={styles.noticeRow}>
             <View style={styles.noticeDot} />
-            <Text style={styles.noticeText}>No login required for first scan • 100% secure & private</Text>
+            <Text style={styles.noticeText}>15 Crops • 48 Disease Classes • Multi-Scale FPN</Text>
           </View>
 
           <View style={styles.statsRow}>
             <View style={styles.statBlock}>
-              <Text style={[styles.statNumber, { color: '#1ea65f' }]}>8,666+</Text>
-              <Text style={styles.statLabel}>Farmers</Text>
+              <Text style={[styles.statNumber, { color: '#1ea65f' }]}>15</Text>
+              <Text style={styles.statLabel}>Crops</Text>
             </View>
             <View style={styles.statBlock}>
-              <Text style={[styles.statNumber, { color: '#1d9ae6' }]}>82%</Text>
-              <Text style={styles.statLabel}>Accuracy</Text>
+              <Text style={[styles.statNumber, { color: '#1d9ae6' }]}>48</Text>
+              <Text style={styles.statLabel}>Classes</Text>
             </View>
             <View style={styles.statBlock}>
-              <Text style={[styles.statNumber, { color: '#f59e0b' }]}>43,333+</Text>
-              <Text style={styles.statLabel}>Scans Done</Text>
+              <Text style={[styles.statNumber, { color: '#f59e0b' }]}>SwinV2</Text>
+              <Text style={styles.statLabel}>Architecture</Text>
             </View>
           </View>
         </View>
@@ -77,8 +71,8 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({ onStart, onLogin }
 
       <View style={styles.featuresSection}>
         <Text style={styles.featureLabel}>FEATURES</Text>
-        <Text style={styles.featuresHeading}>Why Choose KrishiScan?</Text>
-        <Text style={styles.featuresSummary}>Cutting-edge technology meets agricultural expertise</Text>
+        <Text style={styles.featuresHeading}>Why Choose OmniCrops?</Text>
+        <Text style={styles.featuresSummary}>Cutting-edge Vision Transformer meets agricultural disease detection</Text>
 
         <View style={styles.featureGrid}>
           <View style={styles.featureCard}>
