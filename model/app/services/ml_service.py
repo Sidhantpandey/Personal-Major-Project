@@ -78,20 +78,35 @@ class MLService:
     prediction methods for the API layer.
     """
 
-    def __init__(self, weights_dir: str):
+    def __init__(self, weights_dir: str, model_filename: str | None = None):
         """
         Args:
-            weights_dir: Path to the directory containing
-                         best_omnicrops_swinv2.pth and metadata.json
+            weights_dir: Path to the directory containing model weights and metadata.json
+            model_filename: Specific weights filename (defaults to bestomnicrops_swinv2.pth)
         """
         weights_path = Path(weights_dir)
-        model_file = weights_path / "best_omnicrops_swinv2.pth"
         metadata_file = weights_path / "metadata.json"
 
-        if not model_file.exists():
-            raise FileNotFoundError(f"Model weights not found: {model_file}")
         if not metadata_file.exists():
             raise FileNotFoundError(f"Metadata not found: {metadata_file}")
+
+        # Target bestomnicrops_swinv2.pth specifically
+        target_name = model_filename or "bestomnicrops_swinv2.pth"
+        model_file = weights_path / target_name
+        if not model_file.exists():
+            # Fallback to alternate naming if present
+            alt_name = "best_omnicrops_swinv2.pth" if target_name == "bestomnicrops_swinv2.pth" else "bestomnicrops_swinv2.pth"
+            alt_file = weights_path / alt_name
+            if alt_file.exists():
+                logger.warning(
+                    "⚠️ %s not found in %s, falling back to %s",
+                    target_name,
+                    weights_path,
+                    alt_name,
+                )
+                model_file = alt_file
+            else:
+                raise FileNotFoundError(f"Model weights not found: {model_file}")
 
         # ── Load metadata ────────────────────────────────────────────────────
         with open(metadata_file, "r") as f:
@@ -116,8 +131,7 @@ class MLService:
             dropout=0.3,
         )
 
-        # Load checkpoint if available and valid
-        loaded_checkpoint = False
+        # Load trained weights strictly
         try:
             try:
                 state_dict = torch.load(
@@ -128,25 +142,21 @@ class MLService:
             except TypeError:
                 state_dict = torch.load(model_file, map_location=self.device)
 
-            self.model.load_state_dict(state_dict)
-            loaded_checkpoint = True
-            logger.info("✅ Checkpoint loaded from %s", model_file)
+            self.model.load_state_dict(state_dict, strict=True)
+            logger.info("✅ Model checkpoint successfully loaded from %s", model_file)
         except Exception as exc:
-            logger.warning(
-                "⚠️ Could not load custom checkpoint from %s (%s). Using initialized SwinV2 backbone.",
-                model_file,
-                exc,
-            )
+            logger.error("❌ Failed to load checkpoint from %s: %s", model_file, exc)
+            raise RuntimeError(f"Could not load trained model weights from {model_file}: {exc}") from exc
 
         self.model.to(self.device)
         self.model.eval()
 
         param_count = sum(p.numel() for p in self.model.parameters())
         logger.info(
-            "OmniCrops-SwinV2+FPN loaded — %s params, device=%s, checkpoint=%s",
+            "OmniCrops-SwinV2+FPN loaded — %s params, device=%s, weights=%s",
             f"{param_count:,}",
             self.device,
-            loaded_checkpoint,
+            model_file.name,
         )
 
     def _preprocess(self, image_bytes: bytes) -> Image.Image:

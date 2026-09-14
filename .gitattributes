@@ -1,11 +1,12 @@
-# Treat ML model weights as binary — prevents git from corrupting them via text encoding
-*.pth binary
-*.pt binary
-*.onnx binary
-*.pkl binary
-*.bin binary
-*.h5 binary
-*.weights binary
+# Treat ML model weights as binary — prevents git from corrupting them via text encoding or line ending conversions
+*.pth binary -text
+*.pt binary -text
+*.onnx binary -text
+*.pkl binary -text
+*.bin binary -text
+*.h5 binary -text
+*.weights binary -text
+ml-weights/** binary -text
 
 # Images
 *.png binary

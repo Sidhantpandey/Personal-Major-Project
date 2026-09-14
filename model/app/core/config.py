@@ -26,6 +26,7 @@ class Settings(BaseSettings):
 
     # ── ML Model ──────────────────────────────────────────────────────────────
     ML_WEIGHTS_DIR: str = "ml-weights/OmniCrops"  # dir with .pth + metadata.json
+    ML_MODEL_FILENAME: str = "bestomnicrops_swinv2.pth"  # model weights checkpoint file
 
     # ── CORS ──────────────────────────────────────────────────────────────────
     ALLOWED_ORIGINS: list[str] = ["*"]

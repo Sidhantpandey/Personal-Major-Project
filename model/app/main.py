@@ -41,7 +41,10 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     from app.services.ml_service import MLService
 
     try:
-        app.state.ml_service = MLService(weights_dir=settings.ML_WEIGHTS_DIR)
+        app.state.ml_service = MLService(
+            weights_dir=settings.ML_WEIGHTS_DIR,
+            model_filename=settings.ML_MODEL_FILENAME,
+        )
         logger.info("✅ ML model loaded successfully.")
     except Exception as exc:
         logger.error("❌ Failed to load ML model: %s", exc)
