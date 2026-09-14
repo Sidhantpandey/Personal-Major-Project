@@ -108,6 +108,23 @@ class MLService:
             else:
                 raise FileNotFoundError(f"Model weights not found: {model_file}")
 
+        # If the path is a directory (e.g. if extracted as a folder), check if a .pth is inside
+        if model_file.is_dir():
+            nested_weights = list(model_file.glob("*.pth"))
+            if nested_weights:
+                logger.warning(
+                    "⚠️ '%s' is a directory! Auto-resolved to nested weight file: %s",
+                    model_file.name,
+                    nested_weights[0],
+                )
+                model_file = nested_weights[0]
+            else:
+                dir_contents = [p.name for p in model_file.iterdir()][:5]
+                raise IsADirectoryError(
+                    f"'{model_file}' is a directory, not a file! Contents: {dir_contents}. "
+                    f"Please remove this folder and place the real 336.8 MB .pth file at: {model_file}"
+                )
+
         # ── Load metadata ────────────────────────────────────────────────────
         with open(metadata_file, "r") as f:
             self.metadata = json.load(f)
