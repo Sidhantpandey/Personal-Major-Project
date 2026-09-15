@@ -24,6 +24,30 @@ class PredictionResult(BaseModel):
         ...,
         description="Probability (%) for every class",
     )
+    is_plant: bool = Field(
+        default=True,
+        description="Whether the image contains plant foliage",
+    )
+    is_confident: bool = Field(
+        default=True,
+        description="Whether the prediction confidence meets reliability threshold",
+    )
+    status: str = Field(
+        default="valid",
+        description="Prediction status: 'valid', 'not_a_plant', or 'low_confidence'",
+    )
+    warning: str | None = Field(
+        default=None,
+        description="Warning or guidance note if image is invalid or low confidence",
+    )
+    raw_predicted_class: str | None = Field(
+        default=None,
+        description="Raw model top-class before validation overrides",
+    )
+    foliage_ratio: float | None = Field(
+        default=None,
+        description="Estimated percentage of plant foliage pixels in the image",
+    )
     tta_views: int | None = Field(
         default=None,
         description="Number of TTA views used (only present when tta=true)",

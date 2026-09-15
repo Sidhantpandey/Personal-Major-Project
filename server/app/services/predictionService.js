@@ -148,15 +148,18 @@ export const updateReportWithPrediction = async (reportId, predictionData) => {
   const diseaseLabel = normalizeDisease(predictionData?.predicted_class || predictionData?.diseaseLabel || 'Unknown');
   const confidence = Number(predictionData?.confidence ?? 0);
   const language = predictionData.language || 'en';
-  const aiRecommendations = (predictionData?.recommendations && predictionData.recommendations.length)
-    ? predictionData.recommendations
-    : (predictionData?.all_probabilities ? await generateRecommendations({
-        cropType: predictionData.cropType,
-        diseaseLabel,
-        confidence,
-        allProbabilities: predictionData.all_probabilities,
-        language,
-      }) : buildFallbackRecommendations(diseaseLabel, language));
+  const isPlant = predictionData?.is_plant !== false && !diseaseLabel.toLowerCase().includes('unrecognized');
+  const aiRecommendations = !isPlant
+    ? buildFallbackRecommendations('unrecognized', language)
+    : ((predictionData?.recommendations && predictionData.recommendations.length)
+        ? predictionData.recommendations
+        : (predictionData?.all_probabilities ? await generateRecommendations({
+            cropType: predictionData.cropType,
+            diseaseLabel,
+            confidence,
+            allProbabilities: predictionData.all_probabilities,
+            language,
+          }) : buildFallbackRecommendations(diseaseLabel, language)));
 
   const payload = {
     diseaseLabel,

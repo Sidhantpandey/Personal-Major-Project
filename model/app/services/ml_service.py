@@ -181,13 +181,65 @@ class MLService:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         return img
 
+    def _validate_leaf_image(self, img: Image.Image) -> tuple[bool, str, float]:
+        """
+        Validate whether the uploaded image contains plant foliage.
+
+        Checks:
+        1. Contrast / dynamic range: rejects blank, solid color, or extreme low-contrast images.
+        2. Plant color distribution in HSV: checks for characteristic vegetation chlorophyll
+           greens (h in [28, 125]) and necrotic / lesion / blight yellow-browns (h in [10, 35]).
+
+        Returns:
+            (is_plant: bool, reason: str, foliage_ratio: float)
+        """
+        arr_gray = np.array(img.convert("L"), dtype=np.float32)
+        std = float(np.std(arr_gray))
+        if std < 8.0:
+            return False, "Image appears blank, solid, or has insufficient contrast.", 0.0
+
+        # Check for pure synthetic noise (uncorrelated random pixels)
+        diff_x = np.abs(np.diff(arr_gray, axis=1))
+        diff_y = np.abs(np.diff(arr_gray, axis=0))
+        mean_diff = float((np.mean(diff_x) + np.mean(diff_y)) / 2.0)
+        roughness = mean_diff / (std + 1e-6)
+        if roughness > 0.95:
+            return False, "Image appears to be synthetic noise or corrupted visual data.", 0.0
+
+        thumb = img.resize((128, 128))
+        hsv = np.array(thumb.convert("HSV"))
+        h, s, v = hsv[:, :, 0], hsv[:, :, 1], hsv[:, :, 2]
+
+        # Green foliage: Hue 28-125 (approx 40-175 deg)
+        green = (h >= 28) & (h <= 125) & (s >= 20) & (v >= 20)
+
+        # Lesion / necrotic yellow-browns: Hue 10-35 (approx 14-50 deg)
+        # Leaf tissue has green and red components with low blue, unlike pure skin tones
+        rgb = np.array(thumb)
+        r, g, b = rgb[:, :, 0], rgb[:, :, 1], rgb[:, :, 2]
+        lesion = (h >= 10) & (h <= 35) & (s >= 35) & (v >= 20) & (v <= 235) & (g >= b - 20)
+
+        plant_pixels = green | lesion
+        ratio = float(np.count_nonzero(plant_pixels) / (128 * 128))
+
+        # Real leaf close-ups typically occupy > 20% of the image.
+        # Below 10% is almost certainly a non-leaf (vehicle, shoe, selfie, indoor object, code screenshot).
+        if ratio < 0.10:
+            return (
+                False,
+                f"No crop or plant leaf detected ({ratio * 100:.1f}% foliage pixels). Please upload a clear photo of a crop leaf.",
+                ratio,
+            )
+
+        return True, "Plant leaf detected.", ratio
+
     def _calibrate_probabilities(
         self, logits: torch.Tensor, crop_type: str | None = None
     ) -> np.ndarray:
         """
-        Calibrate output logits into well-distributed probabilities.
+        Calibrate output logits into natural probabilities.
         Optionally conditions on crop_type (e.g. 'Tomato', 'Apple', 'Corn')
-        to align predictions with the user's selected crop.
+        to prioritize candidate classes matching the user's selected crop.
         """
         lg = logits.clone().squeeze(0)
 
@@ -199,21 +251,10 @@ class MLService:
                 if c.lower().startswith(clean_crop)
             ]
             if matching_indices:
-                mask = torch.full_like(lg, -5.0)
+                mask = torch.full_like(lg, -2.5)
                 for i in matching_indices:
-                    mask[i] = 1.0
+                    mask[i] = 1.5
                 lg = lg + mask
-
-        # Calibrate top-5 probabilities for realistic distribution (Top: ~86-93%, 2nd: ~5-8%, etc.)
-        top_indices = lg.topk(min(5, len(self.class_list))).indices
-        base = lg[top_indices[0]].clone()
-        lg[top_indices[0]] = base + 5.8
-        if len(top_indices) > 1:
-            lg[top_indices[1]] = base + 3.2
-        if len(top_indices) > 2:
-            lg[top_indices[2]] = base + 2.1
-        if len(top_indices) > 3:
-            lg[top_indices[3]] = base + 1.2
 
         probs = F.softmax(lg, dim=0).cpu().numpy()
         return probs
@@ -228,24 +269,50 @@ class MLService:
             crop_type: Optional crop name (e.g. 'Tomato') to condition predictions
 
         Returns:
-            dict with predicted_class, confidence, all_probabilities
+            dict with predicted_class, confidence, all_probabilities, is_plant, is_confident, status, warning
         """
         img = self._preprocess(image_bytes)
-        tensor = val_transform(img).unsqueeze(0).to(self.device)
+        is_plant, foliage_reason, foliage_ratio = self._validate_leaf_image(img)
 
+        tensor = val_transform(img).unsqueeze(0).to(self.device)
         logits = self.model(tensor)
         probs = self._calibrate_probabilities(logits, crop_type=crop_type)
 
         pred_idx = int(np.argmax(probs))
-        confidence = float(probs[pred_idx] * 100)
+        raw_confidence = float(probs[pred_idx] * 100)
+        raw_class = self.class_list[pred_idx]
+
+        is_confident = (raw_confidence >= 40.0)
+
+        if not is_plant:
+            status = "not_a_plant"
+            predicted_class = "Unrecognized / Non-Crop Image"
+            confidence = round(raw_confidence, 2)
+            warning = foliage_reason
+        elif not is_confident:
+            status = "low_confidence"
+            predicted_class = raw_class
+            confidence = round(raw_confidence, 2)
+            warning = f"Low confidence ({raw_confidence:.1f}%). Symptoms do not clearly match known diseases. Please ensure good lighting and focus on the affected leaf area."
+        else:
+            status = "valid"
+            predicted_class = raw_class
+            confidence = round(raw_confidence, 2)
+            warning = None
 
         return {
-            "predicted_class": self.class_list[pred_idx],
-            "confidence": round(confidence, 2),
+            "predicted_class": predicted_class,
+            "raw_predicted_class": raw_class,
+            "confidence": confidence,
             "all_probabilities": {
                 self.class_list[i]: round(float(probs[i] * 100), 2)
                 for i in range(self.num_classes)
             },
+            "is_plant": is_plant,
+            "is_confident": is_confident,
+            "status": status,
+            "warning": warning,
+            "foliage_ratio": round(foliage_ratio * 100, 1),
         }
 
     @torch.no_grad()
@@ -261,9 +328,11 @@ class MLService:
             crop_type: Optional crop name (e.g. 'Tomato') to condition predictions
 
         Returns:
-            dict with predicted_class, confidence, all_probabilities, tta_views
+            dict with predicted_class, confidence, all_probabilities, is_plant, is_confident, status, warning, tta_views
         """
         img = self._preprocess(image_bytes)
+        is_plant, foliage_reason, foliage_ratio = self._validate_leaf_image(img)
+
         logits_sum = None
 
         for tf in tta_transforms:
@@ -278,14 +347,39 @@ class MLService:
         probs = self._calibrate_probabilities(avg_logits, crop_type=crop_type)
 
         pred_idx = int(np.argmax(probs))
-        confidence = float(probs[pred_idx] * 100)
+        raw_confidence = float(probs[pred_idx] * 100)
+        raw_class = self.class_list[pred_idx]
+
+        is_confident = (raw_confidence >= 40.0)
+
+        if not is_plant:
+            status = "not_a_plant"
+            predicted_class = "Unrecognized / Non-Crop Image"
+            confidence = round(raw_confidence, 2)
+            warning = foliage_reason
+        elif not is_confident:
+            status = "low_confidence"
+            predicted_class = raw_class
+            confidence = round(raw_confidence, 2)
+            warning = f"Low confidence ({raw_confidence:.1f}%). Symptoms do not clearly match known diseases. Please ensure good lighting and focus on the affected leaf area."
+        else:
+            status = "valid"
+            predicted_class = raw_class
+            confidence = round(raw_confidence, 2)
+            warning = None
 
         return {
-            "predicted_class": self.class_list[pred_idx],
-            "confidence": round(confidence, 2),
+            "predicted_class": predicted_class,
+            "raw_predicted_class": raw_class,
+            "confidence": confidence,
             "all_probabilities": {
                 self.class_list[i]: round(float(probs[i] * 100), 2)
                 for i in range(self.num_classes)
             },
+            "is_plant": is_plant,
+            "is_confident": is_confident,
+            "status": status,
+            "warning": warning,
+            "foliage_ratio": round(foliage_ratio * 100, 1),
             "tta_views": len(tta_transforms),
         }

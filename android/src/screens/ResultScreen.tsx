@@ -14,7 +14,15 @@ type ResultScreenProps = {
 };
 
 const parseDiseaseLabel = (label: string = '') => {
-  const parts = label.replace(/___/g, '|').split('|');
+  const clean = String(label).trim();
+  if (
+    clean.toLowerCase().includes('unrecognized') ||
+    clean.toLowerCase().includes('non-crop') ||
+    clean.toLowerCase().includes('not a plant')
+  ) {
+    return { crop: 'Verification', disease: 'Unrecognized / Non-Crop Image' };
+  }
+  const parts = clean.replace(/___/g, '|').split('|');
   const crop = (parts[0] || 'Crop').replace(/_/g, ' ');
   const disease = (parts[1] || '').replace(/_/g, ' ') || 'Healthy';
   return { crop, disease };
@@ -22,8 +30,18 @@ const parseDiseaseLabel = (label: string = '') => {
 
 const getSeverityMeta = (label: string = '', confidence: number = 0) => {
   const lower = label.toLowerCase();
+  if (
+    lower.includes('unrecognized') ||
+    lower.includes('non-crop') ||
+    lower.includes('not a plant')
+  ) {
+    return { label: 'Non-Crop Image', color: '#f59e0b', bg: '#fffbeb', icon: 'warning' as const };
+  }
   if (lower.includes('healthy')) {
     return { label: 'Healthy', color: '#16a34a', bg: '#ecfdf5', icon: 'checkmark-circle' as const };
+  }
+  if (confidence < 40) {
+    return { label: 'Low Confidence', color: '#eab308', bg: '#fefce8', icon: 'help-circle' as const };
   }
   if (confidence >= 85) {
     return { label: 'High Risk', color: '#dc2626', bg: '#fef2f2', icon: 'alert-circle' as const };

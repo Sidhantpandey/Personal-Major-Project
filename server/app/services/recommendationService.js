@@ -77,7 +77,25 @@ const normalizeLanguage = (value = 'en') => {
 export const buildFallbackRecommendations = (diseaseLabel = 'unknown', language = 'en') => {
   const normalized = normalizeDisease(diseaseLabel);
   const languageCode = normalizeLanguage(language);
-  const collection = fallbackRecommendations[languageCode] || fallbackRecommendations.en;
+  if (
+    normalized.includes('unrecognized') ||
+    normalized.includes('non-crop') ||
+    normalized.includes('non_crop') ||
+    normalized.includes('not a plant')
+  ) {
+    if (languageCode === 'hi') {
+      return [
+        'कृपया किसी पौधे की पत्ती या फसल की स्पष्ट तस्वीर अपलोड करें।',
+        'फोटो खींचते समय पर्याप्त प्राकृतिक रोशनी और सही फोकस रखें।',
+        'सटीक पहचान के लिए संबंधित फसल (जैसे टमाटर, धान, आलू) का चयन करें।'
+      ];
+    }
+    return [
+      'Please upload a clear close-up photo of a crop leaf or plant foliage.',
+      'Ensure the photo has good natural lighting, sharp focus, and minimal background clutter.',
+      'Select the matching crop type from the dropdown to improve detection accuracy.'
+    ];
+  }
 
   if (normalized.includes('leaf spot')) return collection.leaf_spot;
   if (normalized.includes('rust')) return collection.rust;
@@ -95,6 +113,16 @@ export const generateRecommendations = async ({
   allProbabilities,
   language = 'en',
 }) => {
+  const normLabel = normalizeDisease(diseaseLabel);
+  if (
+    normLabel.includes('unrecognized') ||
+    normLabel.includes('non-crop') ||
+    normLabel.includes('non_crop') ||
+    normLabel.includes('not a plant')
+  ) {
+    return buildFallbackRecommendations(diseaseLabel, language);
+  }
+
   if (!OPENAI_API_KEY) {
     return buildFallbackRecommendations(diseaseLabel, language);
   }

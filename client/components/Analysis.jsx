@@ -14,18 +14,35 @@ const symptoms = [
 ];
 const severities = ["Mild — few leaves", "Moderate — some plants", "Severe — whole field"];
 
-/* ─── Helpers ─────────────────────────────────────────────────────────────── */
 const parseDiseaseLabel = (label = "") => {
-  const parts = label.replace(/___/g, "|").split("|");
+  const clean = String(label).trim();
+  if (
+    clean.toLowerCase().includes("unrecognized") ||
+    clean.toLowerCase().includes("non-crop") ||
+    clean.toLowerCase().includes("not a plant")
+  ) {
+    return { crop: "Image Check", disease: "Unrecognized / Non-Crop Image" };
+  }
+  const parts = clean.replace(/___/g, "|").split("|");
   const crop = (parts[0] || "Unknown").replace(/_/g, " ");
   const disease = (parts[1] || "").replace(/_/g, " ") || "Healthy";
   return { crop, disease };
 };
 
 const getSeverityMeta = (label = "", confidence = 0) => {
-  const lower = label.toLowerCase();
+  const lower = String(label).toLowerCase();
+  if (
+    lower.includes("unrecognized") ||
+    lower.includes("non-crop") ||
+    lower.includes("not a plant")
+  ) {
+    return { label: "Non-Crop Image", color: "#f59e0b", bg: "rgba(245,158,11,0.15)", icon: "⚠️" };
+  }
   if (lower.includes("healthy")) {
     return { label: "Healthy", color: "#16a34a", bg: "rgba(22,163,74,0.12)", icon: "✅" };
+  }
+  if (confidence < 40) {
+    return { label: "Low Confidence", color: "#eab308", bg: "rgba(234,179,8,0.12)", icon: "❓" };
   }
   if (confidence >= 85) return { label: "High Risk", color: "#dc2626", bg: "rgba(220,38,38,0.1)", icon: "🚨" };
   if (confidence >= 60) return { label: "Moderate", color: "#d97706", bg: "rgba(217,119,6,0.1)", icon: "⚠️" };
@@ -796,8 +813,30 @@ export default function DiagnoseSection() {
                     </div>
                     <div className="res-crop">{parsed?.crop || crop.split(" ")[0]}</div>
                     <div className="res-disease">{parsed?.disease || result.diseaseLabel}</div>
-                  </div>
                 </div>
+
+                {/* ─ Warning banner if non-plant or low confidence */}
+                {(result.rawModelResponse?.warning || result.rawModelResponse?.is_plant === false || String(result.diseaseLabel).toLowerCase().includes("unrecognized")) && (
+                  <div style={{
+                    background: "rgba(245, 158, 11, 0.12)",
+                    border: "1px solid rgba(245, 158, 11, 0.35)",
+                    borderRadius: 12,
+                    padding: "12px 18px",
+                    margin: "18px 24px 0",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    color: "#fde68a",
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                  }}>
+                    <span style={{ fontSize: 22, flexShrink: 0 }}>⚠️</span>
+                    <div>
+                      <strong style={{ color: "#fbbf24" }}>Image Guidance: </strong>
+                      {result.rawModelResponse?.warning || "This image does not clearly show crop leaf foliage. Please review the photography guidance below."}
+                    </div>
+                  </div>
+                )}
 
                 {/* ─ Confidence gauge */}
                 <div className="conf-section">
@@ -840,11 +879,19 @@ export default function DiagnoseSection() {
                   </div>
                 )}
 
-                {/* ─ GPT Recommendations */}
+                {/* ─ GPT Recommendations / Photography Guidance */}
                 <div className="recs-section">
                   <div className="recs-title">
-                    <span className="recs-title-text">Recommended Actions</span>
-                    <span className="recs-badge">✨ GPT-4o-mini</span>
+                    <span className="recs-title-text">
+                      {result.rawModelResponse?.is_plant === false || String(result.diseaseLabel).toLowerCase().includes("unrecognized")
+                        ? "Photography Guidance & Best Practices"
+                        : "Recommended Actions"}
+                    </span>
+                    <span className="recs-badge">
+                      {result.rawModelResponse?.is_plant === false || String(result.diseaseLabel).toLowerCase().includes("unrecognized")
+                        ? "📷 Photo Tips"
+                        : "✨ GPT-4o-mini"}
+                    </span>
                   </div>
                   {recommendations.map((rec, i) => (
                     <div key={i} className={`rec-card ${recsVisible.includes(i) ? "visible" : ""}`}>

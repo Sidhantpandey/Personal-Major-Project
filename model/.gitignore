@@ -34,3 +34,6 @@ alembic/__pycache__/
 # ML model weights (too large for git — download separately)
 ml-weights/
 *.pth
+*.zip
+*.tar.gz
+
